@@ -135,9 +135,13 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-  p {
     font-family: "Google Sans Flex", sans-serif;
+  }
+  p, span, div, a, button, input, textarea, select, label {
+    font-family: "Google Sans Flex", sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Google Sans", sans-serif;
   }
 }
 

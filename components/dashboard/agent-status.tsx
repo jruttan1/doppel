@@ -17,19 +17,12 @@ export function AgentStatus() {
   }
 
   return (
-    <Card className="glass border-border overflow-hidden">
+    <Card className="bg-card border-border overflow-hidden shadow-md">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
       <CardContent className="relative p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-primary" />
-              </div>
-              {isActive && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-card animate-pulse" />
-              )}
-            </div>
+            <Zap className="w-6 h-6 text-teal-500 dark:text-teal-400" />
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold">Your Doppel</h3>

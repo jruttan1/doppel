@@ -564,47 +564,48 @@ export function NetworkFullView() {
 
       {/* Node detail dialog */}
       <Dialog open={!!selectedNode} onOpenChange={() => setSelectedNode(null)}>
-        <DialogContent className="max-w-lg glass border-border">
+        <DialogContent className="max-w-lg bg-card border-border shadow-lg rounded-[4px] h-full w-full max-h-full sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg flex flex-col p-0 sm:p-6 fixed inset-0 sm:inset-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] rounded-none sm:rounded-[4px]">
           {selectedNode && (
             <>
-              <DialogHeader>
-                <div className="flex items-start gap-4">
-                  <div className="relative">
-                    <Avatar className="w-16 h-16">
-                      <AvatarImage
-                        src={selectedNode.avatar || "/placeholder.svg?height=64&width=64&query=professional headshot"}
-                      />
-                      <AvatarFallback className="text-lg">
-                        {selectedNode.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    {selectedNode.status === "matched" && (
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
-                        <Sparkles className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <DialogTitle className="text-xl">{selectedNode.name}</DialogTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedNode.role} @ {selectedNode.company}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      {selectedNode.compatibility && (
-                        <Badge className="bg-green-500/10 text-green-500">{selectedNode.compatibility}% Match</Badge>
+              <div className="flex-1 overflow-y-auto px-4 pr-12 sm:pr-4 sm:px-0 pb-4 sm:pb-0">
+                <DialogHeader className="pt-6 sm:pt-0">
+                  <div className="flex items-start gap-4">
+                    <div className="relative">
+                      <Avatar className="w-16 h-16">
+                        <AvatarImage
+                          src={selectedNode.avatar || "/placeholder.svg?height=64&width=64&query=professional headshot"}
+                        />
+                        <AvatarFallback className="text-lg">
+                          {selectedNode.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedNode.status === "matched" && (
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
+                          <Sparkles className="w-3 h-3 text-white" />
+                        </div>
                       )}
-                      <Badge variant="secondary" className="capitalize">
-                        {selectedNode.status}
-                      </Badge>
+                    </div>
+                    <div className="flex-1">
+                      <DialogTitle className="text-xl">{selectedNode.name}</DialogTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedNode.role} @ {selectedNode.company}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        {selectedNode.compatibility && (
+                          <Badge className="bg-green-500/10 text-green-500">{selectedNode.compatibility}% Match</Badge>
+                        )}
+                        <Badge variant="secondary" className="capitalize">
+                          {selectedNode.status}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </DialogHeader>
+                </DialogHeader>
 
-              <div className="space-y-6 mt-4">
+                <div className="space-y-6 mt-4">
                 <div>
                   <h4 className="text-sm font-medium mb-3">Skills & Expertise</h4>
                   <div className="flex flex-wrap gap-2">
@@ -619,7 +620,7 @@ export function NetworkFullView() {
                 {selectedNode.compatibility && (
                   <div className="space-y-4">
                     <h4 className="text-sm font-medium">Compatibility Breakdown</h4>
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
                       <div className="space-y-1">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Relevance</span>
@@ -645,7 +646,7 @@ export function NetworkFullView() {
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2 pb-4 sm:pb-0">
                   <Button className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
                     <Calendar className="w-4 h-4" />
                     Book Coffee Chat
@@ -655,6 +656,7 @@ export function NetworkFullView() {
                     View Simulation
                   </Button>
                 </div>
+              </div>
               </div>
             </>
           )}

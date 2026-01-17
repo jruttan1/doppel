@@ -80,7 +80,7 @@ export function ConnectionsList() {
 
   return (
     <>
-      <Card className="glass border-border h-full">
+      <Card className="bg-card border-border h-full shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Your Connections</CardTitle>
         </CardHeader>

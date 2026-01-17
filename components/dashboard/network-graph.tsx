@@ -243,7 +243,7 @@ export function NetworkGraph() {
   )
 
   return (
-    <Card className="glass border-border h-full">
+    <Card className="bg-card border-border h-full shadow-md">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Network Map</CardTitle>
         <div className="flex items-center gap-1">

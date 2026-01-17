@@ -2,7 +2,7 @@
 
 import type React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -30,29 +30,43 @@ import {
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { createClient } from "@/lib/supabase/client"
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/network", label: "Network", icon: Network },
   { href: "/dashboard/simulations", label: "Simulations", icon: MessageSquare },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ]
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false)
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/auth/login")
+    router.refresh()
+  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="h-full px-4 -ml-4 opacity-70 hover:opacity-100 transition-opacity cursor-pointer flex items-center" 
+            aria-label="Toggle sidebar"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
           <Link href="/dashboard" className="flex items-center gap-2">
             <span className="font-bold font-mono">Doppel</span>
           </Link>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2" aria-label="Toggle sidebar">
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </header>
 
@@ -86,6 +100,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       ? "bg-primary/10 text-primary shadow-sm"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
+                  style={{ fontFamily: '"Google Sans Flex", sans-serif' }}
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
@@ -114,7 +129,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* User menu */}
           <div className="px-3 py-4 border-t border-border">
-            <DropdownMenu>
+            <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors">
                   <Avatar className="w-8 h-8">
@@ -122,24 +137,34 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <AvatarFallback>JD</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left">
-                    <p className="text-sm font-medium">John Doe</p>
-                    <p className="text-xs text-muted-foreground">john@example.com</p>
+                    <p className="text-sm font-medium">Your Name</p>
+                    <p className="text-xs text-muted-foreground">name@example.com</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="w-4 h-4 mr-2" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings?tab=profile" onClick={() => setUserMenuOpen(false)}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings" onClick={() => setUserMenuOpen(false)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem 
+                  className="text-destructive" 
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    handleLogout()
+                  }}
+                >
                   <LogOut className="w-4 h-4 mr-2" />
                   Log out
                 </DropdownMenuItem>
@@ -169,10 +194,43 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
             </Button>
-            <Avatar className="w-8 h-8">
-              <AvatarImage src="/diverse-avatars.png" />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
+            <DropdownMenu open={desktopMenuOpen} onOpenChange={setDesktopMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src="/diverse-avatars.png" />
+                    <AvatarFallback>JD</AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings?tab=profile" onClick={() => setDesktopMenuOpen(false)}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings" onClick={() => setDesktopMenuOpen(false)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="text-destructive" 
+                  onClick={() => {
+                    setDesktopMenuOpen(false)
+                    handleLogout()
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>

@@ -3,8 +3,6 @@ import { NetworkGraph } from "@/components/dashboard/network-graph"
 import { ConnectionsList } from "@/components/dashboard/connections-list"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { AgentStatus } from "@/components/dashboard/agent-status"
-import { RecentActivity } from "@/components/dashboard/recent-activity"
-import { SimulationPreview } from "@/components/dashboard/simulation-preview"
 
 export const metadata = {
   title: "Dashboard | Doppel",
@@ -26,20 +24,14 @@ export default function DashboardPage() {
         <StatsCards />
 
         <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <NetworkGraph />
-          </div>
-          <div className="lg:col-span-1">
-            <SimulationPreview />
           </div>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-5">
             <ConnectionsList />
-          </div>
-          <div className="lg:col-span-2">
-            <RecentActivity />
           </div>
         </div>
       </div>

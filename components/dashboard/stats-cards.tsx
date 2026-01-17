@@ -11,8 +11,6 @@ const stats = [
     change: "+89 today",
     trend: 7.2,
     icon: Users,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
   },
   {
     label: "Simulations Run",
@@ -20,8 +18,6 @@ const stats = [
     change: "+23 today",
     trend: 12.5,
     icon: Zap,
-    color: "text-yellow-500",
-    bgColor: "bg-yellow-500/10",
   },
   {
     label: "High Matches",
@@ -29,8 +25,6 @@ const stats = [
     change: "+4 this week",
     trend: 16.7,
     icon: CheckCircle2,
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
   },
   {
     label: "Pending Review",
@@ -38,8 +32,6 @@ const stats = [
     change: "Ready for you",
     trend: 0,
     icon: Clock,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
   },
 ]
 
@@ -70,14 +62,10 @@ export function StatsCards() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, index) => (
-        <Card key={stat.label} className="glass border-border group hover:border-primary/30 transition-colors">
+        <Card key={stat.label} className="bg-card border-border group hover:shadow-lg transition-shadow">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3">
-              <div
-                className={`w-10 h-10 rounded-lg ${stat.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform`}
-              >
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
+              <stat.icon className="w-5 h-5 text-teal-500 dark:text-teal-400 group-hover:scale-110 transition-transform" />
               {stat.trend > 0 && (
                 <div className="flex items-center gap-1 text-xs text-green-500">
                   <TrendingUp className="w-3 h-3" />

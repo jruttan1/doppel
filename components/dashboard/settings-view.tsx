@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,13 +15,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, Bot, Bell, Shield, Trash2, Upload, RefreshCw, Target, MessageSquare, Globe } from "lucide-react"
 
 export function SettingsView() {
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
+  const [activeTab, setActiveTab] = useState(tabParam || "profile")
   const [agentActive, setAgentActive] = useState(true)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [weeklyDigest, setWeeklyDigest] = useState(true)
   const [matchAlerts, setMatchAlerts] = useState(true)
 
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
+
   return (
-    <Tabs defaultValue="profile" className="space-y-6">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
       <TabsList className="bg-secondary/50 w-full justify-start overflow-x-auto">
         <TabsTrigger value="profile" className="gap-2">
           <User className="w-4 h-4" />

@@ -40,44 +40,45 @@ export function ConnectionDetailModal({ connection, onClose }: ConnectionDetailM
 
   return (
     <Dialog open={!!connection} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-lg glass border-border">
-        <DialogHeader>
-          <div className="flex items-start gap-4">
-            <div className="relative">
-              <Avatar className="w-16 h-16">
-                <AvatarImage src={connection.avatar || "/placeholder.svg"} />
-                <AvatarFallback className="text-lg">
-                  {connection.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
+      <DialogContent className="max-w-lg bg-card border-border shadow-lg rounded-[4px] h-full w-full max-h-full sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg flex flex-col p-0 sm:p-6 fixed inset-0 sm:inset-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] rounded-none sm:rounded-[4px]">
+        <div className="flex-1 overflow-y-auto px-4 pr-12 sm:pr-4 sm:px-0 pb-4 sm:pb-0">
+          <DialogHeader className="pt-6 sm:pt-0">
+            <div className="flex items-start gap-4">
+              <div className="relative">
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={connection.avatar || "/placeholder.svg"} />
+                  <AvatarFallback className="text-lg">
+                    {connection.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 text-white" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-xl">{connection.name}</DialogTitle>
+                <DialogDescription className="text-sm">{connection.role}</DialogDescription>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
+                    {connection.compatibility}% Match
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">{connection.matchedAt}</span>
+                </div>
               </div>
             </div>
-            <div className="flex-1">
-              <DialogTitle className="text-xl">{connection.name}</DialogTitle>
-              <DialogDescription className="text-sm">{connection.role}</DialogDescription>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
-                  {connection.compatibility}% Match
-                </Badge>
-                <span className="text-xs text-muted-foreground">{connection.matchedAt}</span>
-              </div>
-            </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+          <div className="space-y-6 mt-4">
           {/* Compatibility Breakdown */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />
               Compatibility Breakdown
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Relevance</span>
@@ -139,13 +140,14 @@ export function ConnectionDetailModal({ connection, onClose }: ConnectionDetailM
             </Button>
           </div>
 
-          <div className="flex items-center justify-center gap-4 pt-2">
+          <div className="flex items-center justify-center gap-4 pt-2 pb-4 sm:pb-0">
             <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
               <Linkedin className="w-4 h-4" />
               LinkedIn
               <ExternalLink className="w-3 h-3" />
             </Button>
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
