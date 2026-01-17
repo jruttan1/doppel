@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import { Upload, Brain, Zap, MessageCircle } from "lucide-react"
 
 const steps = [
@@ -30,16 +29,14 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background pointer-events-none" />
-
+    <section id="how-it-works" className="py-24 relative bg-background">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <Badge variant="outline" className="mb-4">
-            How It Works
-          </Badge>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 mb-4 shadow-sm">
+            <span className="text-sm font-medium text-teal-700 dark:text-teal-300 uppercase tracking-wide">How It Works</span>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-balance">Four Steps to Better Connections</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-foreground/70 max-w-2xl mx-auto font-normal">
             No more cold outreach. No more swiping. Let your digital twin do the work.
           </p>
         </div>
@@ -48,21 +45,27 @@ export function HowItWorks() {
           {steps.map((step, index) => (
             <div key={step.title} className="relative group">
               {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-12 left-full w-full h-px bg-gradient-to-r from-border to-transparent z-0" />
+                <div className="hidden lg:block absolute top-12 left-full w-full h-px bg-gradient-to-r from-teal-200 dark:from-teal-800 to-transparent z-0" />
               )}
 
-              <div className="relative glass rounded-2xl p-6 h-full transition-all duration-300 hover:scale-[1.02] gradient-border">
+              <div className="relative bg-card rounded-lg p-6 h-full transition-all duration-200 hover:shadow-lg border border-border shadow-md">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <step.icon className="w-6 h-6 text-primary" />
+                  <div className="w-12 h-12 rounded bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center shrink-0">
+                    <step.icon className="w-6 h-6 text-teal-600 dark:text-teal-400" />
                   </div>
-                  <span className="text-4xl font-bold text-muted-foreground/20">
-                    {String(index + 1).padStart(2, "0")}
+                  <span className="text-4xl font-bold">
+                    <span className="text-foreground/30">0</span>
+                    <span 
+                      className="text-teal-600 dark:text-teal-400"
+                      style={{ textShadow: '0 0 10px rgba(45, 212, 191, 0.5), 0 0 20px rgba(45, 212, 191, 0.3), 0 0 30px rgba(45, 212, 191, 0.2)' }}
+                    >
+                      {index + 1}
+                    </span>
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                <p className="text-muted-foreground text-sm mb-3">{step.description}</p>
-                <p className="text-xs text-muted-foreground/70">{step.detail}</p>
+                <p className="text-foreground/70 text-sm mb-3 font-normal">{step.description}</p>
+                <p className="text-xs text-foreground/50 font-normal">{step.detail}</p>
               </div>
             </div>
           ))}
