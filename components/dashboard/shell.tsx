@@ -24,7 +24,6 @@ import {
   Menu,
   X,
   Zap,
-  Bell,
   Search,
 } from "lucide-react"
 import { useState } from "react"
@@ -131,12 +130,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="px-3 py-4 border-t border-border">
             <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors">
+                <button className="w-full lg:w-auto flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src="/diverse-avatars.png" />
                     <AvatarFallback>JD</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 text-left">
+                  <div className="flex-1 lg:hidden text-left">
                     <p className="text-sm font-medium">Your Name</p>
                     <p className="text-xs text-muted-foreground">name@example.com</p>
                   </div>
@@ -190,10 +189,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <Input placeholder="Search connections, simulations..." className="pl-9 w-80 bg-secondary/50 border-0" />
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
-            </Button>
             <DropdownMenu open={desktopMenuOpen} onOpenChange={setDesktopMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">

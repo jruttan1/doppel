@@ -21,18 +21,6 @@ const PROMPTS = [
   "How would you explain your work to a smart 10-year-old?",
 ]
 
-const EXAMPLE_VIBES = [
-  { label: "Casual", example: "hey! saw your project - super cool stuff. would love to jam on ideas sometime" },
-  {
-    label: "Professional",
-    example: "Hi there, I noticed your work on X and think there could be strong synergies between our approaches.",
-  },
-  {
-    label: "Technical",
-    example: "Your implementation of the state machine pattern is elegant. Curious about the perf.",
-  },
-]
-
 export function StepVibeCheck({ soulData, updateSoulData, onNext, onPrev }: StepVibeCheckProps) {
   const [vibeCheck, setVibeCheck] = useState(soulData.vibeCheck || "")
   const [selectedPrompt, setSelectedPrompt] = useState(0)
@@ -91,25 +79,6 @@ export function StepVibeCheck({ soulData, updateSoulData, onNext, onPrev }: Step
             </div>
           </CardContent>
         </Card>
-
-        {/* Example vibes */}
-        <div>
-          <p className="text-sm text-muted-foreground mb-3 text-center">Need inspiration? Here are some styles:</p>
-          <div className="grid gap-3">
-            {EXAMPLE_VIBES.map((vibe) => (
-              <button
-                key={vibe.label}
-                className="text-left p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors border border-transparent hover:border-primary/20"
-                onClick={() => setVibeCheck(vibe.example)}
-              >
-                <Badge variant="outline" className="mb-2">
-                  {vibe.label}
-                </Badge>
-                <p className="text-sm text-muted-foreground italic">&ldquo;{vibe.example}&rdquo;</p>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="flex justify-between pt-4">
           <Button variant="outline" onClick={onPrev} className="gap-2 bg-transparent">
