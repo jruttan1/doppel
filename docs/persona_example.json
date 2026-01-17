@@ -4,6 +4,19 @@
       "headline": "Founder @ Stealth Startup | Ex-Stripe",
       "location": "San Francisco, CA"
     },
+    "skills_possessed": [
+      "Rust",
+      "Distributed Systems",
+      "Backend Development",
+      "Go",
+      "Kubernetes",
+      "React",
+      "TypeScript"
+    ],
+    "skills_desired": [
+        "LLMS",
+        "AI/ML"
+    ],
     "networking_goals": [
       "Find a technical co-founder who has deep experience with Rust and distributed systems",
       "Get critical feedback on my B2B sales motion for a developer tool",
@@ -22,7 +35,7 @@
         "Project: Monitor-CLI - An open-source command line tool for monitoring server health in real-time, written in Go. Featured on Hacker News front page in 2022 for its minimal memory footprint."
       ],
       "interests": [
-        "Rust Programming",
+        "LLMS",
         "High-Performance Computing",
         "Mechanical Keyboards",
         "Biohacking",
