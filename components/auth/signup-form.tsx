@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -18,7 +17,6 @@ export function SignupForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -27,12 +25,6 @@ export function SignupForm() {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
-
-    if (!acceptedTerms) {
-      setError("Please accept the terms of service")
-      setIsLoading(false)
-      return
-    }
 
     const supabase = createClient()
 
@@ -86,7 +78,7 @@ export function SignupForm() {
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="fullName">Full Name</Label>
+          <Label htmlFor="fullName">Your Name</Label>
           <Input
             id="fullName"
             type="text"
@@ -120,28 +112,8 @@ export function SignupForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
             className="bg-input border-border"
           />
-          <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
-        </div>
-
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id="terms"
-            checked={acceptedTerms}
-            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-          />
-          <Label htmlFor="terms" className="text-sm text-muted-foreground leading-snug cursor-pointer">
-            I agree to the{" "}
-            <Link href="/terms" className="text-primary hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-          </Label>
         </div>
       </div>
 
