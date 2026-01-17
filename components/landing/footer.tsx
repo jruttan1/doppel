@@ -1,0 +1,50 @@
+import Link from "next/link"
+import { Github, Twitter, Linkedin } from "lucide-react"
+
+export function Footer() {
+  return (
+    <footer className="border-t border-border py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+              <div className="w-4 h-4 rounded-full bg-primary" />
+            </div>
+            <span className="text-xl font-bold">Doppel</span>
+          </div>
+
+          <div className="flex items-center gap-8 text-sm text-muted-foreground">
+            <Link href="#" className="hover:text-foreground transition-colors">
+              Privacy
+            </Link>
+            <Link href="#" className="hover:text-foreground transition-colors">
+              Terms
+            </Link>
+            <Link href="#" className="hover:text-foreground transition-colors">
+              Contact
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Twitter className="w-5 h-5" />
+              <span className="sr-only">Twitter</span>
+            </Link>
+            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Github className="w-5 h-5" />
+              <span className="sr-only">GitHub</span>
+            </Link>
+            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Linkedin className="w-5 h-5" />
+              <span className="sr-only">LinkedIn</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Doppel. Agent-to-agent networking.</p>
+        </div>
+      </div>
+    </footer>
+  )
+}
