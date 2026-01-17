@@ -48,10 +48,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
-              <div className="w-3.5 h-3.5 rounded-full bg-primary" />
-            </div>
-            <span className="font-bold">Doppel</span>
+            <span className="font-bold font-mono">Doppel</span>
           </Link>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2" aria-label="Toggle sidebar">
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -70,10 +67,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="h-14 lg:h-16 flex items-center px-6 border-b border-border">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full bg-primary animate-pulse-glow" />
-              </div>
-              <span className="text-xl font-bold">Doppel</span>
+              <span className="text-xl font-bold font-mono">Doppel</span>
             </Link>
           </div>
 
