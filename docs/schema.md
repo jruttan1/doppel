@@ -6,8 +6,8 @@
 |--------|------|-------------|
 | id | uuid | PK. Linked to Supabase Auth. |
 | name | text | Display name for the dashboard. |
-| twin_data | jsonb | The Soul File. Contains bio, voice_samples, and goals. |
-| twin_status | text | active, paused, or suspended. Controls visibility. |
+| persona | jsonb | The Soul File. Contains bio, voice_samples, and goals. |
+| tagline | text | One sentence description, similar to linkedin headline |
 
 ## Simulations Table
 
