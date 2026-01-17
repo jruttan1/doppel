@@ -1,18 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-})
 
 export const metadata: Metadata = {
   title: "Doppel | Agent-to-Agent Networking",
@@ -24,6 +13,10 @@ export const metadata: Metadata = {
     title: "Doppel | Agent-to-Agent Networking",
     description: "Deploy your digital twin to find the perfect professional connections.",
     type: "website",
+  },
+  other: {
+    "google-fonts-preconnect": "https://fonts.googleapis.com",
+    "google-fonts-preconnect-gstatic": "https://fonts.gstatic.com",
   },
 }
 
@@ -38,7 +31,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-sans antialiased">
         {children}
         <Analytics />
       </body>

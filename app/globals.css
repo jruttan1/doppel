@@ -83,8 +83,9 @@
 }
 
 @theme inline {
-  --font-sans: "Space Grotesk", "Geist", "Geist Fallback", sans-serif;
-  --font-mono: "JetBrains Mono", "Geist Mono", "Geist Mono Fallback", monospace;
+  --font-sans: "Google Sans", "Google Sans Flex", sans-serif;
+  --font-mono: "Google Sans Code", monospace;
+  --font-flex: "Google Sans Flex", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -135,6 +136,14 @@
   body {
     @apply bg-background text-foreground;
   }
+  p {
+    font-family: "Google Sans Flex", sans-serif;
+  }
+}
+
+.teal-glow {
+  color: #2dd4bf;
+  text-shadow: 0 0 20px rgba(45, 212, 191, 0.8), 0 0 40px rgba(45, 212, 191, 0.6), 0 0 60px rgba(45, 212, 191, 0.4);
 }
 
 /* Custom animations for Doppel */
