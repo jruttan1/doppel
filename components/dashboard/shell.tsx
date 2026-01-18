@@ -21,8 +21,10 @@ import {
   Menu,
   X,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
 import { ConnectionsSimulationsSidebar } from "./connections-simulations-sidebar"
@@ -42,8 +44,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false)
   const [userData, setUserData] = useState<UserData>({ name: null, email: null })
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar-width')
+      return saved ? parseInt(saved, 10) : 256 // 256px = w-64
+    }
+    return 256
+  })
+  const [isResizing, setIsResizing] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
+  const resizeRef = useRef<HTMLDivElement>(null)
 
   const supabase = createClient()
+
+  // Check if desktop on mount and resize
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024)
+    }
+    checkDesktop()
+    window.addEventListener('resize', checkDesktop)
+    return () => window.removeEventListener('resize', checkDesktop)
+  }, [])
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -71,6 +93,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     fetchUserData()
   }, [fetchUserData])
 
+  // Handle sidebar resize
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(200, Math.min(600, e.clientX))
+      setSidebarWidth(newWidth)
+      localStorage.setItem('sidebar-width', newWidth.toString())
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push("/auth/login")
@@ -96,7 +145,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const displayEmail = userData.email || ""
 
   return (
-    <div className="h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
@@ -116,9 +165,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-screen w-64 border-r border-border bg-card transition-transform lg:translate-x-0",
+          "fixed top-0 left-0 z-40 h-screen border-r border-border bg-card transition-transform lg:translate-x-0 shrink-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          !isResizing && "transition-all"
         )}
+        style={{ width: `${sidebarWidth}px` }}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -182,6 +233,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </DropdownMenu>
           </div>
         </div>
+        {/* Resize handle - Desktop only */}
+        <div
+          ref={resizeRef}
+          className="hidden lg:block absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors z-50 group"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsResizing(true)
+          }}
+        >
+          <div className="absolute inset-y-0 -right-1 w-3" />
+          {/* Grip indicator */}
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 flex items-center gap-0.5">
+            <ChevronLeft className="w-2.5 h-2.5 text-muted-foreground" />
+            <div className="flex flex-col gap-0.5">
+              <div className="w-0.5 h-1.5 bg-border rounded-full" />
+              <div className="w-0.5 h-1.5 bg-border rounded-full" />
+              <div className="w-0.5 h-1.5 bg-border rounded-full" />
+            </div>
+            <ChevronRight className="w-2.5 h-2.5 text-muted-foreground" />
+          </div>
+        </div>
       </aside>
 
       {/* Overlay for mobile */}
@@ -193,8 +265,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <main className="lg:pl-64 pt-14 lg:pt-0 h-full flex flex-col overflow-hidden">
-        <div className="hidden lg:flex items-center justify-between px-6 h-12 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0 z-20">
+      <main 
+        className={cn(
+          "pt-14 lg:pt-0 h-full flex flex-col overflow-hidden min-w-0",
+          !isResizing && "transition-[padding-left]"
+        )}
+        style={{ paddingLeft: isDesktop ? `${sidebarWidth}px` : undefined }}
+      >
+        <div className="hidden lg:flex items-center justify-between px-6 h-12 border-b border-border bg-card/50 backdrop-blur-sm shrink-0 z-20">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search connections, simulations..." className="pl-9 w-80 bg-secondary/50 border-0" />
@@ -243,7 +321,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </DropdownMenu>
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-hidden p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
   )
