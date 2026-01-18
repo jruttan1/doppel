@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, Sparkles, X, Plus } from "lucide-react"
+import { ArrowLeft, ArrowRight, X, Plus } from "lucide-react"
 import type { SoulFileData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -41,16 +41,12 @@ const RELATED_INTERESTS: Record<string, string[]> = {
   "Fitness": ["Running", "Cycling", "Climbing", "Strength Training", "Recovery"],
 }
 
-const EXTRACTED_FROM_RESUME = [
-  "TypeScript", "React", "Distributed Systems", "AI/ML", "Startups"
-]
-
 export function StepInterests({ soulData, updateSoulData, onNext, onPrev }: StepInterestsProps) {
   const [interests, setInterests] = useState<string[]>(() => {
     if (soulData.raw_assets?.interests && soulData.raw_assets.interests.length > 0) {
       return soulData.raw_assets.interests
     }
-    return EXTRACTED_FROM_RESUME
+    return []
   })
   const [interestInput, setInterestInput] = useState("")
   const [showDropdown, setShowDropdown] = useState(false)
@@ -131,33 +127,6 @@ export function StepInterests({ soulData, updateSoulData, onNext, onPrev }: Step
       </div>
 
       <div className="space-y-8">
-        {/* Extracted from resume */}
-        {interests.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-white/40">
-              <Sparkles className="w-4 h-4" />
-              <span>Found in your resume</span>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {interests.map((interest) => (
-                <span 
-                  key={interest} 
-                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/20 text-white text-sm"
-                >
-                  {interest}
-                  <button
-                    onClick={() => removeInterest(interest)}
-                    className="opacity-50 hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Hero Input */}
         <div className="relative">
           <input
@@ -224,6 +193,29 @@ export function StepInterests({ soulData, updateSoulData, onNext, onPrev }: Step
             </div>
           )}
         </div>
+
+        {/* Selected interests */}
+        {interests.length > 0 && (
+          <div className="space-y-3">
+            <span className="text-xs text-white/30">Selected interests</span>
+            <div className="flex flex-wrap gap-2">
+              {interests.map((interest) => (
+                <span 
+                  key={interest} 
+                  className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/20 text-white text-sm"
+                >
+                  {interest}
+                  <button
+                    onClick={() => removeInterest(interest)}
+                    className="opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Contextual suggestions */}
         <div className="space-y-3">

@@ -8,7 +8,11 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <AuthLayout title="Welcome back" description="Sign in to your account to continue networking">
+    <AuthLayout 
+      title="Welcome back" 
+      description="Sign in to your account to continue networking"
+      ctaText="Your digital twin is waiting. Jump back in and watch it work 24/7 to find your perfect matches."
+    >
       <LoginForm />
     </AuthLayout>
   )
