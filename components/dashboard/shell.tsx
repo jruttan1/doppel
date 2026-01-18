@@ -15,9 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  LayoutDashboard,
-  Network,
-  MessageSquare,
   Settings,
   User,
   LogOut,
@@ -29,12 +26,10 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
+import { ConnectionsSimulationsSidebar } from "./connections-simulations-sidebar"
 
-const navItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/network", label: "Network", icon: Network },
-  { href: "/dashboard/simulations", label: "Simulations", icon: MessageSquare },
-]
+// Navigation removed - everything is on one page now
+const navItems: { href: string; label: string; icon: any }[] = []
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -83,32 +78,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                    isActive
-                      ? "bg-primary/10 text-primary shadow-sm"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                  )}
-                  style={{ fontFamily: '"Google Sans Flex", sans-serif' }}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                  {item.label === "Simulations" && (
-                    <Badge className="ml-auto bg-green-500/10 text-green-500 text-xs">3</Badge>
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
+          {/* Connections & Simulations Sidebar - Desktop only */}
+          <div className="hidden lg:flex flex-1 flex-col border-b border-border overflow-hidden">
+            <ConnectionsSimulationsSidebar />
+          </div>
 
           {/* User menu */}
           <div className="px-3 py-4 border-t border-border">
