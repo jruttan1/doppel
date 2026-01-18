@@ -105,11 +105,19 @@ export async function POST(req: Request) {
     console.log("Onboarding data saved, triggering ingestion...");
 
     // Trigger ingestion (don't await - let it run in background)
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/ingest`, {
+    // Use request URL to construct proper endpoint (works in all environments)
+    const url = new URL(req.url);
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const ingestUrl = `${baseUrl}/api/ingest`;
+    
+    fetch(ingestUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: userId }),
-    }).catch(e => console.error("Ingestion trigger failed:", e));
+    }).catch(e => {
+      console.error("Ingestion trigger failed:", e.message);
+      // Don't throw - ingestion can happen later via manual trigger if needed
+    });
 
     return NextResponse.json({ success: true });
 
