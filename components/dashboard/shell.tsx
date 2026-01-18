@@ -109,7 +109,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Doppel" width={24} height={24} />
+            <Image src="/logo.svg" alt="Doppel" width={40} height={40} />
             <span className="font-bold font-serif">Doppel</span>
           </Link>
         </div>
@@ -126,7 +126,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="h-12 flex items-center px-4 border-b border-border">
             <Link href="/dashboard" className="flex items-center gap-1.5">
-              <Image src="/logo.svg" alt="Doppel" width={32} height={32} />
+              <Image src="/logo.svg" alt="Doppel" width={48} height={48} />
               <span className="text-lg font-bold font-serif">Doppel</span>
             </Link>
           </div>

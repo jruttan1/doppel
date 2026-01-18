@@ -60,7 +60,11 @@ export function ConnectionsSimulationsSidebar() {
           .limit(50)
 
         if (simError) {
-          // Error fetching simulations - silently fail
+          console.error("Error fetching simulations:", simError)
+          console.error("Error details:", JSON.stringify(simError, null, 2))
+          // Silently fail - user might not have any simulations yet
+          setConnections([])
+          setSimulations([])
           return
         }
 

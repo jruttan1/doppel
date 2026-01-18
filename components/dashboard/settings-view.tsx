@@ -273,37 +273,62 @@ export function SettingsView() {
       
       const existingPersona = existing?.persona || {}
       
-      const { error } = await supabase
+      // Prepare data with proper types - only include fields that have values
+      const updateData: any = {
+        id: userId,
+      }
+
+      // Only include fields that have values (avoid sending empty strings)
+      if (name) updateData.name = name
+      if (headline) updateData.tagline = headline
+      if (location) updateData.location = location
+      if (linkedinUrl) updateData.linkedin_url = linkedinUrl
+      if (xUrl) updateData.x_url = xUrl
+      if (githubUrl) updateData.github_url = githubUrl
+      if (googleCalendarUrl) updateData.google_calendar_url = googleCalendarUrl
+      
+      const voiceSig = promptResponses.join("\n\n---\n\n")
+      if (voiceSig.trim()) updateData.voice_signature = voiceSig
+
+      // Handle array fields - always send as arrays (even if empty)
+      updateData.networking_goals = networkingGoals.length > 0 ? networkingGoals : []
+      updateData.skills = skills.length > 0 ? skills : []
+      updateData.skills_desired = skillsDesired.length > 0 ? skillsDesired : []
+      updateData.location_desired = locationDesired.length > 0 ? locationDesired : []
+
+      // Update persona with agent settings
+      updateData.persona = {
+        ...existingPersona,
+        agent_active: agentActive,
+        selective_connect: selectiveConnect,
+        notifications: {
+          email: emailNotifications,
+          match_alerts: matchAlerts,
+          weekly_digest: weeklyDigest,
+        },
+      }
+
+      // Try update first (user should already exist)
+      let { error } = await supabase
         .from("users")
-        .upsert({
-          id: userId,
-          name,
-          tagline: headline,
-          location,
-          linkedin_url: linkedinUrl,
-          x_url: xUrl,
-          github_url: githubUrl,
-          google_calendar_url: googleCalendarUrl,
-          networking_goals: networkingGoals,
-          voice_signature: promptResponses.join("\n\n---\n\n"),
-          skills: skills,
-          skills_desired: skillsDesired,
-          location_desired: locationDesired,
-          persona: {
-            ...existingPersona,
-            agent_active: agentActive,
-            selective_connect: selectiveConnect,
-            notifications: {
-              email: emailNotifications,
-              match_alerts: matchAlerts,
-              weekly_digest: weeklyDigest,
-            },
-          },
-        })
+        .update(updateData)
+        .eq("id", userId)
+
+      // If update fails with "no rows" error, try upsert (user might not exist yet)
+      if (error && error.code === "PGRST116") {
+        const { error: upsertError } = await supabase
+          .from("users")
+          .upsert(updateData)
+        error = upsertError
+      }
 
       if (error) {
         console.error("Error saving profile:", error)
-        alert("Failed to save settings. Please try again.")
+        console.error("Error details:", JSON.stringify(error, null, 2))
+        console.error("Error code:", error.code)
+        console.error("Error message:", error.message)
+        console.error("Data being saved:", JSON.stringify(updateData, null, 2))
+        alert(`Failed to save settings: ${error.message || 'Unknown error'}. Check console for details.`)
       } else {
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
