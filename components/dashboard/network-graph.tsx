@@ -184,18 +184,47 @@ export function NetworkGraph() {
         const padding = 60
         const maxCanvasRadius = Math.min(rect.width, rect.height) / 2 - padding
         
-        // Initialize nodes with random positions across the entire canvas
-        const initialNodes: NetworkNode[] = userNodes.map((node) => {
-          const x = padding + Math.random() * (rect.width - padding * 2)
-          const y = padding + Math.random() * (rect.height - padding * 2)
+        // Group nodes by status for circular arrangement
+        const nodesByStatus = {
+          connected: userNodes.filter(n => n.status === "connected"),
+          matched: userNodes.filter(n => n.status === "matched"),
+          simulated: userNodes.filter(n => n.status === "simulated"),
+          unexplored: userNodes.filter(n => n.status === "unexplored"),
+        }
+        
+        // Define radius ranges for each status (closer to center = higher priority)
+        const getRadiusForStatus = (status: NetworkNode["status"], index: number, total: number) => {
+          const baseRadius = {
+            connected: 100,
+            matched: 150,
+            simulated: 220,
+            unexplored: 280,
+          }[status]
           
-          return {
-            ...node,
-            x,
-            y,
-            vx: (Math.random() - 0.5) * 3,
-            vy: (Math.random() - 0.5) * 3,
-          }
+          // Add some variation to prevent perfect circles
+          const variation = 30
+          return baseRadius + (Math.random() - 0.5) * variation
+        }
+        
+        // Initialize nodes in circular arrangements by status
+        const initialNodes: NetworkNode[] = []
+        
+        Object.entries(nodesByStatus).forEach(([status, nodes]) => {
+          nodes.forEach((node, index) => {
+            const radius = getRadiusForStatus(node.status as NetworkNode["status"], index, nodes.length)
+            // Distribute nodes evenly around the circle for this status
+            const angle = (index / nodes.length) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
+            const x = centerX + Math.cos(angle) * radius
+            const y = centerY + Math.sin(angle) * radius
+            
+            initialNodes.push({
+              ...node,
+              x,
+              y,
+              vx: (Math.random() - 0.5) * 0.5,
+              vy: (Math.random() - 0.5) * 0.5,
+            })
+          })
         })
 
         // Build connection graph: create connections between nodes
@@ -284,17 +313,26 @@ export function NetworkGraph() {
               }
             })
             
-            // Weak attraction to center for connected/matched nodes only (keeps them somewhat central but not circular)
-            if (node.status === "connected" || node.status === "matched") {
-              const dxToCenter = node.x - centerX
-              const dyToCenter = node.y - centerY
-              const distToCenter = Math.sqrt(dxToCenter * dxToCenter + dyToCenter * dyToCenter) || 0.1
-              
-              // Very weak force to keep important nodes from going to edges, but allow free movement
-              const centerPull = 0.02
-              fx -= (dxToCenter / distToCenter) * centerPull * 30
-              fy -= (dyToCenter / distToCenter) * centerPull * 30
-            }
+            // Circular constraint: keep nodes in their circular arrangement
+            const targetRadius = {
+              connected: 100,
+              matched: 150,
+              simulated: 220,
+              unexplored: 280,
+            }[node.status]
+            
+            const dxToCenter = node.x - centerX
+            const dyToCenter = node.y - centerY
+            const distToCenter = Math.sqrt(dxToCenter * dxToCenter + dyToCenter * dyToCenter) || 0.1
+            
+            // Calculate the ideal position on the circle
+            const idealX = centerX + (dxToCenter / distToCenter) * targetRadius
+            const idealY = centerY + (dyToCenter / distToCenter) * targetRadius
+            
+            // Apply force to maintain circular position (stronger for important nodes)
+            const circularForce = node.status === "connected" || node.status === "matched" ? 0.15 : 0.1
+            fx -= (node.x - idealX) * circularForce
+            fy -= (node.y - idealY) * circularForce
             
             // Update velocity with damping
             node.vx = (node.vx + fx) * 0.9
