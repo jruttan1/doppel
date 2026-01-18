@@ -110,11 +110,21 @@ OUTPUT SCHEMA:
     const responseText = result.response.text();
     const finalPersona = JSON.parse(responseText);
 
+    // Extract tagline from persona
+    const tagline = finalPersona?.identity?.tagline || null;
+
+    // Merge persona skills with user-input skills (no duplicates)
+    const existingSkills: string[] = user.skills || [];
+    const personaSkills: string[] = finalPersona?.skills_possessed || [];
+    const mergedSkills = [...new Set([...existingSkills, ...personaSkills])];
+
     // save to db
     const { error: updateError } = await supabase
       .from('users')
       .update({ 
         persona: finalPersona,
+        tagline: tagline,
+        skills: mergedSkills,
         ingestion_status: 'complete'
       })
       .eq('id', id);
@@ -122,6 +132,8 @@ OUTPUT SCHEMA:
     if (updateError) throw updateError;
 
     console.log("Ingestion complete for:", id);
+    console.log("Extracted tagline:", tagline);
+    console.log("Merged skills:", mergedSkills.length);
     return NextResponse.json({ success: true, persona: finalPersona });
 
   } catch (error: any) {

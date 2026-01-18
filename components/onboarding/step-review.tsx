@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, FileText, MessageCircle, Target, Heart, Loader2, Sparkles } from "lucide-react"
+import { ArrowLeft, FileText, MessageCircle, Target, Heart, Loader2, Sparkles, Briefcase, MapPin } from "lucide-react"
 import type { SoulFileData } from "@/lib/types"
 import { createClient } from "@/lib/supabase/client"
 
@@ -41,7 +41,9 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
           githubUrl: soulData.githubUrl || null,
           networkingGoals: soulData.networking_goals || [],
           voiceSignature: soulData.raw_assets?.voice_snippet || null,
-          interests: soulData.raw_assets?.interests || [],
+          skills: soulData.raw_assets?.interests || [], // interests = skills
+          skillsDesired: soulData.hiringSkillsDesired || [],
+          locationDesired: soulData.hiringLocationsDesired || [],
         }),
       })
       
@@ -148,6 +150,50 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
             </div>
           </div>
         )}
+
+        {/* Hiring Preferences */}
+        {soulData.isHiring && (soulData.hiringSkillsDesired?.length || soulData.hiringLocationsDesired?.length) ? (
+          <div className="rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl p-5">
+            <div className="flex items-center gap-2 text-xs text-white/40 mb-4">
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Hiring Preferences</span>
+            </div>
+            <div className="space-y-4">
+              {soulData.hiringSkillsDesired && soulData.hiringSkillsDesired.length > 0 && (
+                <div>
+                  <p className="text-xs text-white/30 mb-2">Skills wanted</p>
+                  <div className="flex flex-wrap gap-2">
+                    {soulData.hiringSkillsDesired.map((skill) => (
+                      <span 
+                        key={skill} 
+                        className="px-3 py-1.5 rounded-full bg-white/5 border border-white/20 text-white text-sm"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {soulData.hiringLocationsDesired && soulData.hiringLocationsDesired.length > 0 && (
+                <div>
+                  <p className="text-xs text-white/30 mb-2 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Locations
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {soulData.hiringLocationsDesired.map((location) => (
+                      <span 
+                        key={location} 
+                        className="px-3 py-1.5 rounded-full bg-white/5 border border-white/20 text-white text-sm"
+                      >
+                        {location}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {deployError && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { PDFParse } from 'pdf-parse';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +7,22 @@ const supabase = createClient(
 );
 
 export const maxDuration = 60;
+
+// PDF text extraction using pdf-parse node build
+async function extractPdfText(base64: string): Promise<string | null> {
+  try {
+    // Use the node-specific build which handles worker setup
+    const { PDFParse } = await import('pdf-parse/dist/node/esm/index.js');
+    const buffer = Buffer.from(base64, 'base64');
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const result = await parser.getText();
+    const text = result.pages.map((p: { text: string }) => p.text).join('\n\n').trim();
+    return text || null;
+  } catch (e: any) {
+    console.error("PDF parse error:", e.message);
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +33,9 @@ export async function POST(req: Request) {
       githubUrl,
       networkingGoals,
       voiceSignature,
-      interests,
+      skills,
+      skillsDesired,
+      locationDesired,
     } = await req.json();
 
     if (!userId) {
@@ -32,30 +49,16 @@ export async function POST(req: Request) {
     let linkedinText: string | null = null;
 
     if (resumeBase64) {
-      try {
-        const buffer = Buffer.from(resumeBase64, 'base64');
-        const parser = new PDFParse({ data: new Uint8Array(buffer) });
-        const result = await parser.getText();
-        resumeText = result.pages.map((p: { text: string }) => p.text).join('\n\n').trim() || null;
-        console.log(`Parsed resume: ${resumeText?.length || 0} chars`);
-      } catch (e: any) {
-        console.error("Resume parse error:", e.message);
-      }
+      resumeText = await extractPdfText(resumeBase64);
+      console.log(`Parsed resume: ${resumeText?.length || 0} chars`);
     }
 
     if (linkedinBase64) {
-      try {
-        const buffer = Buffer.from(linkedinBase64, 'base64');
-        const parser = new PDFParse({ data: new Uint8Array(buffer) });
-        const result = await parser.getText();
-        linkedinText = result.pages.map((p: { text: string }) => p.text).join('\n\n').trim() || null;
-        console.log(`Parsed LinkedIn: ${linkedinText?.length || 0} chars`);
-      } catch (e: any) {
-        console.error("LinkedIn parse error:", e.message);
-      }
+      linkedinText = await extractPdfText(linkedinBase64);
+      console.log(`Parsed LinkedIn: ${linkedinText?.length || 0} chars`);
     }
 
-    // Save to database
+    // Save to database (only columns that exist in the table)
     const { error: updateError } = await supabase
       .from('users')
       .update({
@@ -64,6 +67,9 @@ export async function POST(req: Request) {
         github_url: githubUrl || null,
         networking_goals: networkingGoals || [],
         voice_signature: voiceSignature || null,
+        skills: skills || [],
+        skills_desired: skillsDesired || [],
+        location_desired: locationDesired || [],
         ingestion_status: 'pending',
       })
       .eq('id', userId);

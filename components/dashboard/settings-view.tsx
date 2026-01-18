@@ -78,6 +78,16 @@ export function SettingsView() {
   const [networkingGoals, setNetworkingGoals] = useState<string[]>([])
   const [goalInput, setGoalInput] = useState("")
   
+  // Skills
+  const [skills, setSkills] = useState<string[]>([])
+  const [skillInput, setSkillInput] = useState("")
+  
+  // Hiring preferences
+  const [skillsDesired, setSkillsDesired] = useState<string[]>([])
+  const [skillDesiredInput, setSkillDesiredInput] = useState("")
+  const [locationDesired, setLocationDesired] = useState<string[]>([])
+  const [locationDesiredInput, setLocationDesiredInput] = useState("")
+  
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [matchAlerts, setMatchAlerts] = useState(true)
@@ -115,13 +125,45 @@ export function SettingsView() {
         setGithubUrl(profile.github_url || "")
         if (profile.email) setEmail(profile.email)
         
-        // Load networking_goals from dedicated column (text[] in Postgres)
-        if (profile.networking_goals && Array.isArray(profile.networking_goals)) {
-          setNetworkingGoals(profile.networking_goals)
+        // Helper to parse array fields (handle both array and JSON string formats)
+        const parseArrayField = (field: any): string[] => {
+          if (!field) return []
+          if (Array.isArray(field)) return field
+          if (typeof field === 'string') {
+            try {
+              const parsed = JSON.parse(field)
+              return Array.isArray(parsed) ? parsed : []
+            } catch {
+              return []
+            }
+          }
+          return []
         }
         
+        // Load networking_goals from dedicated column (text[] in Postgres)
+        setNetworkingGoals(parseArrayField(profile.networking_goals))
+        
+        // Load skills from column, fallback to persona.skills_possessed
+        const skillsFromDb = parseArrayField(profile.skills)
+        if (skillsFromDb.length > 0) {
+          setSkills(skillsFromDb)
+        } else if (profile.persona?.skills_possessed && Array.isArray(profile.persona.skills_possessed)) {
+          setSkills(profile.persona.skills_possessed)
+        }
+        
+        // Load hiring preferences
+        setSkillsDesired(parseArrayField(profile.skills_desired))
+        setLocationDesired(parseArrayField(profile.location_desired))
+        
+        // Load voice signature - check column first, then persona
+        if (profile.voice_signature) {
+          setVibeCheck(profile.voice_signature)
+        } else if (profile.persona?.raw_assets?.voice_snippet) {
+          setVibeCheck(profile.persona.raw_assets.voice_snippet)
+        }
+        
+        // Load agent settings from persona
         if (profile.persona) {
-          setVibeCheck(profile.persona.voice_signature || "")
           setAgentActive(profile.persona.agent_active ?? true)
           setSelectiveConnect(profile.persona.selective_connect ?? false)
           
@@ -156,6 +198,15 @@ export function SettingsView() {
     setSaved(false)
 
     try {
+      // First fetch existing persona to preserve generated data
+      const { data: existing } = await supabase
+        .from("users")
+        .select("persona")
+        .eq("id", userId)
+        .single()
+      
+      const existingPersona = existing?.persona || {}
+      
       const { error } = await supabase
         .from("users")
         .upsert({
@@ -166,8 +217,12 @@ export function SettingsView() {
           linkedin_url: linkedinUrl,
           github_url: githubUrl,
           networking_goals: networkingGoals,
+          voice_signature: vibeCheck,
+          skills: skills,
+          skills_desired: skillsDesired,
+          location_desired: locationDesired,
           persona: {
-            voice_signature: vibeCheck,
+            ...existingPersona,
             agent_active: agentActive,
             selective_connect: selectiveConnect,
             notifications: {
@@ -200,6 +255,39 @@ export function SettingsView() {
 
   const removeGoal = (index: number) => {
     setNetworkingGoals((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const addSkill = () => {
+    if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+      setSkills((prev) => [...prev, skillInput.trim()])
+      setSkillInput("")
+    }
+  }
+
+  const removeSkill = (skill: string) => {
+    setSkills((prev) => prev.filter((s) => s !== skill))
+  }
+
+  const addSkillDesired = () => {
+    if (skillDesiredInput.trim() && !skillsDesired.includes(skillDesiredInput.trim())) {
+      setSkillsDesired((prev) => [...prev, skillDesiredInput.trim()])
+      setSkillDesiredInput("")
+    }
+  }
+
+  const removeSkillDesired = (skill: string) => {
+    setSkillsDesired((prev) => prev.filter((s) => s !== skill))
+  }
+
+  const addLocationDesired = () => {
+    if (locationDesiredInput.trim() && !locationDesired.includes(locationDesiredInput.trim())) {
+      setLocationDesired((prev) => [...prev, locationDesiredInput.trim()])
+      setLocationDesiredInput("")
+    }
+  }
+
+  const removeLocationDesired = (loc: string) => {
+    setLocationDesired((prev) => prev.filter((l) => l !== loc))
   }
 
   const getInitials = (name: string) => {
@@ -243,13 +331,17 @@ export function SettingsView() {
           <User className="w-4 h-4" />
           Profile
         </TabsTrigger>
+        <TabsTrigger value="skills" className="gap-2">
+          <FileText className="w-4 h-4" />
+          Skills
+        </TabsTrigger>
+        <TabsTrigger value="hiring" className="gap-2">
+          <Briefcase className="w-4 h-4" />
+          Hiring
+        </TabsTrigger>
         <TabsTrigger value="agent" className="gap-2">
           <Shield className="w-4 h-4" />
           Agent
-        </TabsTrigger>
-        <TabsTrigger value="experience" className="gap-2">
-          <Briefcase className="w-4 h-4" />
-          Experience
         </TabsTrigger>
         <TabsTrigger value="goals" className="gap-2">
           <Target className="w-4 h-4" />
@@ -385,6 +477,184 @@ export function SettingsView() {
                 </>
               ) : (
                 "Save Profile"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Skills Tab */}
+      <TabsContent value="skills" className="space-y-6">
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader>
+            <CardTitle>Your Skills</CardTitle>
+            <CardDescription>Skills you have - used for matching with others.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Current Skills */}
+            {skills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <span 
+                    key={skill} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm"
+                  >
+                    {skill}
+                    <button
+                      onClick={() => removeSkill(skill)}
+                      className="opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Add Skill */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add a skill (e.g., React, Python, Product Management)"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addSkill()
+                  }
+                }}
+                className="bg-secondary/50"
+              />
+              <Button onClick={addSkill} variant="outline" size="icon">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : saved ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Saved!
+                </>
+              ) : (
+                "Save Skills"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Hiring Tab */}
+      <TabsContent value="hiring" className="space-y-6">
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader>
+            <CardTitle>Hiring Preferences</CardTitle>
+            <CardDescription>Looking for a co-founder or hiring? Specify what you're looking for.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Skills Desired */}
+            <div className="space-y-3">
+              <Label>Skills you're looking for</Label>
+              {skillsDesired.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {skillsDesired.map((skill) => (
+                    <span 
+                      key={skill} 
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => removeSkillDesired(skill)}
+                        className="opacity-50 hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a skill (e.g., Backend, ML, Sales)"
+                  value={skillDesiredInput}
+                  onChange={(e) => setSkillDesiredInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      addSkillDesired()
+                    }
+                  }}
+                  className="bg-secondary/50"
+                />
+                <Button onClick={addSkillDesired} variant="outline" size="icon">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Locations Desired */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Preferred Locations
+              </Label>
+              {locationDesired.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {locationDesired.map((loc) => (
+                    <span 
+                      key={loc} 
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-sm"
+                    >
+                      {loc}
+                      <button
+                        onClick={() => removeLocationDesired(loc)}
+                        className="opacity-50 hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a location (e.g., San Francisco, Remote)"
+                  value={locationDesiredInput}
+                  onChange={(e) => setLocationDesiredInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      addLocationDesired()
+                    }
+                  }}
+                  className="bg-secondary/50"
+                />
+                <Button onClick={addLocationDesired} variant="outline" size="icon">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : saved ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Saved!
+                </>
+              ) : (
+                "Save Hiring Preferences"
               )}
             </Button>
           </CardContent>

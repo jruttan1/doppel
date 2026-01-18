@@ -28,7 +28,7 @@ export function SignupForm() {
 
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -44,6 +44,16 @@ export function SignupForm() {
       setError(error.message)
       setIsLoading(false)
       return
+    }
+
+    // Save name/location to users table
+    if (data.user) {
+      await supabase.from('users').upsert({
+        id: data.user.id,
+        email: email,
+        name: fullName,
+        location: location,
+      })
     }
 
     router.push("/onboarding")

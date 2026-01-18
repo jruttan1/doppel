@@ -153,6 +153,10 @@ export interface SoulFileData {
     skills: string[]
     experienceYears: number
   }
+  // Hiring preferences (shown if user is hiring/looking for cofounder)
+  isHiring?: boolean
+  hiringSkillsDesired?: string[]
+  hiringLocationsDesired?: string[]
   // Legacy fields for backward compatibility
   documents?: { name: string; type: string }[]
   linkedinUrl?: string
