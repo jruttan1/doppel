@@ -270,7 +270,10 @@ Preserve detail in experience descriptions. Include soft skills and leadership i
 // --- X/TWITTER ---
 
 const GUMLOOP_X_USER_ID = process.env.GUMLOOP_USER_ID || 'x847FlXvIMcKaILyaifOw8IUXAq1';
-const GUMLOOP_X_PIPELINE_ID = process.env.GUMLOOP_X_PIPELINE_ID || 'iWwFuUdxgnuakoco747u9N';
+const GUMLOOP_X_PIPELINE_ID = process.env.GUMLOOP_X_PIPELINE_ID || '7A4oBYUagQPbg8SnvDMaU4';
+// Extract just the API key (first 32 chars before & if present)
+const envApiKey = process.env.GUMLOOP_API_KEY?.split('&')[0]?.trim();
+const GUMLOOP_X_API_KEY = (envApiKey && envApiKey.length === 32) ? envApiKey : 'c082e29f8d254075930cfc27174dcf3d';
 
 async function fetchAndSummarizeX(xUrlOrUsername: string): Promise<any> {
   try {
@@ -285,25 +288,22 @@ async function fetchAndSummarizeX(xUrlOrUsername: string): Promise<any> {
 
     console.log(`Fetching X data for: ${username}`);
 
-    // Call Gumloop to get tweets — pipeline expects username without @
+    // Step 1: POST to start pipeline (empty body as per user's example)
     const gumloopRes = await fetch(
       `https://api.gumloop.com/api/v1/start_pipeline?user_id=${GUMLOOP_X_USER_ID}&saved_item_id=${GUMLOOP_X_PIPELINE_ID}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GUMLOOP_API_KEY}`
+          'Authorization': `Bearer ${GUMLOOP_X_API_KEY}`
         },
-        body: JSON.stringify({
-          pipeline_inputs: [
-            { input_name: 'username', value: username }
-          ]
-        })
+        body: JSON.stringify({})
       }
     );
 
     if (!gumloopRes.ok) {
-      console.error("Gumloop API error:", gumloopRes.status);
+      const errorText = await gumloopRes.text();
+      console.error("Gumloop start_pipeline error:", gumloopRes.status, errorText);
       return null;
     }
 
@@ -311,55 +311,80 @@ async function fetchAndSummarizeX(xUrlOrUsername: string): Promise<any> {
     const runId = gumloopData.run_id;
 
     if (!runId) {
-      console.error("No run_id from Gumloop");
+      console.error("No run_id from Gumloop:", gumloopData);
       return null;
     }
 
-    // Poll for completion (max 30 seconds)
-    let tweets: string[] = [];
-    for (let i = 0; i < 15; i++) {
+    console.log(`Got run_id: ${runId}, polling for results...`);
+
+    // Step 2: Poll GET request until DONE (max 60 seconds)
+    let tweets: any = null;
+    let finalOutputs: any = null;
+    for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 2000));
       
       const statusRes = await fetch(
         `https://api.gumloop.com/api/v1/get_pl_run?run_id=${runId}&user_id=${GUMLOOP_X_USER_ID}`,
         {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.GUMLOOP_API_KEY}`
+            'Authorization': `Bearer ${GUMLOOP_X_API_KEY}`
           }
         }
       );
 
-      if (!statusRes.ok) continue;
+      if (!statusRes.ok) {
+        console.log(`Poll attempt ${i + 1}: Status ${statusRes.status}`);
+        continue;
+      }
 
       const statusData = await statusRes.json();
+      console.log(`Poll attempt ${i + 1}: State = ${statusData.state}`);
       
       if (statusData.state === 'DONE') {
-        // Extract tweets from outputs
-        tweets = statusData.outputs?.tweets || statusData.outputs?.output || [];
+        finalOutputs = statusData.outputs;
+        // Extract tweets from outputs - check various possible keys
+        tweets = statusData.outputs?.tweets || 
+                 statusData.outputs?.output || 
+                 statusData.outputs?.data ||
+                 statusData.outputs;
+        
         if (typeof tweets === 'string') {
           tweets = tweets.split('\n').filter((t: string) => t.trim());
+        } else if (Array.isArray(tweets)) {
+          // Already an array
+        } else if (tweets && typeof tweets === 'object') {
+          // Try to extract array from object
+          tweets = Object.values(tweets).flat().filter((t: any) => typeof t === 'string' && t.trim());
         }
         break;
       } else if (statusData.state === 'FAILED') {
-        console.error("Gumloop pipeline failed");
+        console.error("Gumloop pipeline failed:", statusData);
         return null;
       }
     }
 
-    if (!tweets || tweets.length === 0) {
-      console.log("No tweets retrieved");
+    if (!tweets || (Array.isArray(tweets) && tweets.length === 0)) {
+      console.log("No tweets retrieved. Outputs:", JSON.stringify(finalOutputs, null, 2));
       return null;
     }
 
-    console.log(`Got ${tweets.length} tweets, summarizing...`);
+    const tweetCount = Array.isArray(tweets) ? tweets.length : 1;
+    console.log(`Got ${tweetCount} tweets, summarizing with Gemini...`);
 
     // Summarize with Gemini
+    const tweetsText = Array.isArray(tweets) 
+      ? tweets.join('\n---\n') 
+      : typeof tweets === 'string' 
+        ? tweets 
+        : JSON.stringify(tweets, null, 2);
+
     const summaryPrompt = `
 You are analyzing someone's Twitter/X presence to understand their authentic voice and personality.
 
 TWEETS (last 25):
 """
-${Array.isArray(tweets) ? tweets.join('\n---\n') : tweets}
+${tweetsText}
 """
 
 Analyze these tweets and return JSON with:
@@ -382,12 +407,13 @@ Focus on authentic voice signals. Ignore promotional content or retweets.
     
     return {
       username,
-      tweet_count: tweets.length,
+      tweet_count: tweetCount,
+      raw_tweets: tweets,
       ...summary
     };
 
   } catch (e: any) {
-    console.error("X fetch/summarize error:", e.message);
+    console.error("X fetch/summarize error:", e.message, e.stack);
     return null;
   }
 }
