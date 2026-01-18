@@ -8,20 +8,32 @@ const supabase = createClient(
 
 export const maxDuration = 60;
 
-// PDF text extraction using pdf-parse
+// PDF text extraction using pdfjs-dist (works better in Next.js serverless)
 async function extractPdfText(base64: string): Promise<string | null> {
   try {
-    const pdfParse = (await import('pdf-parse')).default;
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    
     const buffer = Buffer.from(base64, 'base64');
     
-    // pdf-parse accepts a Buffer and returns parsed data
-    const data = await pdfParse(buffer);
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
     
-    // Extract text - pdf-parse returns text directly or in pages
-    const text = data.text || '';
-    return text.trim() || null;
+    // Extract text from all pages
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+    
+    return fullText.trim() || null;
   } catch (e: any) {
-    console.error("PDF parse error:", e.message, e.stack);
+    console.error("PDF parse error:", e.message);
+    console.error("PDF parse error stack:", e.stack);
     return null;
   }
 }

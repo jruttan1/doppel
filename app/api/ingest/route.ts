@@ -20,8 +20,10 @@ const flashModel = genAI.getGenerativeModel({
 export const maxDuration = 60; 
 
 export async function POST(req: Request) {
+  let userId: string | null = null;
   try {
     const { id } = await req.json();
+    userId = id;
 
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
@@ -52,9 +54,17 @@ export async function POST(req: Request) {
     console.log("Normalized LinkedIn:", normalizedLinkedin ? "✓" : "✗");
     console.log("Github Data:", githubData ? "✓" : "✗");
     console.log("X Summary:", xSummary ? "✓" : "✗");
+    
+    // Validate we have at least some data to create a persona
+    if (!normalizedResume && !normalizedLinkedin && !githubData && !xSummary && !user.networking_goals?.length) {
+      console.warn("⚠️ No data sources available for persona creation");
+    }
 
     // prepare final synthesis
-    const { resume_text, linkedin_text, github_url, persona, ...userMetadata } = user;
+    const { resume_text, linkedin_text, github_url, persona, x_summary: storedXSummary, ...userMetadata } = user;
+    
+    // Use stored x_summary from DB if available, otherwise use fresh xSummary
+    const xSummaryToUse = storedXSummary || xSummary;
     
     // final gemini call - synthesize everything into persona
     const synthesisPrompt = `
@@ -78,18 +88,22 @@ ${normalizedLinkedin ? JSON.stringify(normalizedLinkedin, null, 2) : "Not provid
 ${githubData ? JSON.stringify(githubData, null, 2) : "Not provided"}
 
 **X/Twitter Analysis:**
-${xSummary ? JSON.stringify(xSummary, null, 2) : "Not provided"}
+${xSummaryToUse ? JSON.stringify(xSummaryToUse, null, 2) : "Not provided"}
 
 GUIDELINES:
 - Resume is the source of truth for work history, technical details, and skills
 - LinkedIn provides soft skills, endorsements, and professional "vibe"
 - GitHub validates technical skills - weight repos by stars and recency
-- X/Twitter is the best signal for authentic voice, communication style, and current interests - heavily weight this for voice_snippet and personality
+- X/Twitter analysis provides insights into communication style and personality, but DO NOT mix it into voice_snippet
 - User metadata contains their explicit networking goals - preserve these exactly
 - Merge duplicate information intelligently (don't repeat the same skill twice)
 - Make intelligent assumptions about personality based on writing style and interests
-- For experience_log, write detailed sentences like: "Role @ Company (Years) - Description with metrics and achievements"
-- For project_list, write like: "Repo: name (Language) - Description with impact/stars if notable"
+
+CRITICAL REQUIREMENTS:
+1. **experience_log MUST be populated** - Extract ALL work experience from Resume.experience and LinkedIn.experience arrays. Format each as: "Role @ Company (StartDate-EndDate) - Detailed description with key achievements, metrics, and impact. Include technologies used and team size if relevant."
+2. **voice_snippet MUST be ONLY the user's original voice_signature** - Use the exact text from userMetadata.voice_signature. Do NOT combine with X/Twitter analysis or add any other text.
+3. **project_list** - Include GitHub repos formatted as: "Repo: name (Language) - Description with impact/stars if notable"
+4. **interests** - Combine interests from LinkedIn, GitHub topics, X/Twitter key_interests, and user metadata
 
 OUTPUT SCHEMA:
 {
@@ -102,19 +116,45 @@ OUTPUT SCHEMA:
   "skills_desired": ["Array of skills they're looking for in a match (cofounder, hire, partner). Must be empty if they are not hiring or looking for a cofounder."],
   "networking_goals": ["Array - preserve exactly from user metadata networking_goals"],
   "raw_assets": {
-    "voice_snippet": "String - user provided voice_signature in metadata, use it exactly as it was input",
-    "experience_log": ["Array of detailed experience strings like: 'Senior Backend Engineer @ Stripe (2020-2023) - Core Payments Team. Led migration reducing latency by 40%. Mentored 3 engineers.'"],
-    "project_list": ["Array of project strings like: 'Repo: rocket-rs (Rust) - High performance web server template. 1.2k GitHub stars.'"],
-    "interests": ["Array of personal/professional interests - from linkedin, github topics, user metadata"]
+    "voice_snippet": "String - EXACTLY the user provided voice_signature from userMetadata, nothing else",
+    "experience_log": ["Array - REQUIRED. Extract from Resume.experience and LinkedIn.experience. Format: 'Role @ Company (Years) - Description with metrics and achievements'"],
+    "project_list": ["Array of project strings like: 'Repo: name (Language) - Description with impact/stars if notable'"],
+    "interests": ["Array of personal/professional interests - from linkedin, github topics, x/twitter, user metadata"]
   }
 }
 `;
 
     console.log("Final synthesis with Gemini");
     
-    const result = await flashModel.generateContent(synthesisPrompt);
-    const responseText = result.response.text();
-    const finalPersona = JSON.parse(responseText);
+    let finalPersona;
+    try {
+      const result = await flashModel.generateContent(synthesisPrompt);
+      let responseText = result.response.text();
+      
+      console.log("Gemini response length:", responseText.length);
+      console.log("Gemini response preview:", responseText.substring(0, 200));
+      
+      // Handle markdown code blocks if Gemini wraps JSON in them
+      const jsonMatch = responseText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        console.log("Found JSON in markdown code block, extracting...");
+        responseText = jsonMatch[1];
+      }
+      
+      // Try to parse JSON, with better error handling
+      try {
+        finalPersona = JSON.parse(responseText);
+        console.log("Successfully parsed persona JSON");
+      } catch (parseError: any) {
+        console.error("JSON parse error:", parseError.message);
+        console.error("Full response text:", responseText);
+        throw new Error(`Failed to parse persona JSON: ${parseError.message}. Response preview: ${responseText.substring(0, 500)}`);
+      }
+    } catch (geminiError: any) {
+      console.error("Gemini API error:", geminiError.message);
+      console.error("Gemini error stack:", geminiError.stack);
+      throw new Error(`Gemini API failed: ${geminiError.message}`);
+    }
 
     // Extract tagline from persona
     const tagline = finalPersona?.identity?.tagline || null;
@@ -124,8 +164,16 @@ OUTPUT SCHEMA:
     const personaSkills: string[] = finalPersona?.skills_possessed || [];
     const mergedSkills = [...new Set([...existingSkills, ...personaSkills])];
 
+    // Validate persona structure before saving
+    if (!finalPersona || typeof finalPersona !== 'object') {
+      throw new Error("Invalid persona structure: persona is not an object");
+    }
+    
+    console.log("Saving persona to database...");
+    console.log("Persona keys:", Object.keys(finalPersona));
+    
     // save to db
-    const { error: updateError } = await supabase
+    const { error: updateError, data: updateData } = await supabase
       .from('users')
       .update({ 
         persona: finalPersona,
@@ -134,9 +182,20 @@ OUTPUT SCHEMA:
         x_summary: xSummary || null,
         ingestion_status: 'complete'
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select();
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Database update error:", updateError);
+      console.error("Update error details:", JSON.stringify(updateError, null, 2));
+      throw new Error(`Database update failed: ${updateError.message} (code: ${updateError.code})`);
+    }
+    
+    if (!updateData || updateData.length === 0) {
+      throw new Error("Database update returned no rows - user may not exist");
+    }
+    
+    console.log("Database update successful");
 
     console.log("Ingestion complete for:", id);
     console.log("Extracted tagline:", tagline);
@@ -145,6 +204,20 @@ OUTPUT SCHEMA:
 
   } catch (error: any) {
     console.error("🔥 Ingestion Failed:", error);
+    console.error("Error stack:", error.stack);
+    
+    // Update ingestion_status to 'failed' so we can track issues
+    if (userId) {
+      try {
+        await supabase
+          .from('users')
+          .update({ ingestion_status: 'failed' })
+          .eq('id', userId);
+      } catch (updateErr) {
+        console.error("Failed to update ingestion_status:", updateErr);
+      }
+    }
+    
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -202,9 +275,18 @@ Be thorough with experience highlights and project details. Preserve specific me
 
   try {
     const result = await flashModel.generateContent(prompt);
-    return JSON.parse(result.response.text());
+    let responseText = result.response.text();
+    
+    // Handle markdown code blocks
+    const jsonMatch = responseText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+    if (jsonMatch) {
+      responseText = jsonMatch[1];
+    }
+    
+    return JSON.parse(responseText);
   } catch (e: any) {
     console.error("Resume normalization error:", e.message);
+    console.error("Response text:", e.response?.text?.() || "N/A");
     return null;
   }
 }
@@ -260,9 +342,18 @@ Preserve detail in experience descriptions. Include soft skills and leadership i
 
   try {
     const result = await flashModel.generateContent(prompt);
-    return JSON.parse(result.response.text());
+    let responseText = result.response.text();
+    
+    // Handle markdown code blocks
+    const jsonMatch = responseText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+    if (jsonMatch) {
+      responseText = jsonMatch[1];
+    }
+    
+    return JSON.parse(responseText);
   } catch (e: any) {
     console.error("LinkedIn normalization error:", e.message);
+    console.error("Response text:", e.response?.text?.() || "N/A");
     return null;
   }
 }

@@ -11,7 +11,7 @@ import { StepReview } from "./step-review"
 import type { SoulFileData } from "@/lib/types"
 
 // Goals that trigger the hiring step
-const HIRING_GOALS = ["find a co-founder", "hire", "recruit", "cofounder", "hiring", "talent"]
+const HIRING_GOALS = ["find a co-founder", "hire", "cofounder", "hiring", "talent"]
 
 export function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0)
