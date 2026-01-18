@@ -156,6 +156,8 @@ export interface SoulFileData {
   documents?: { name: string; type: string }[]
   linkedinUrl?: string
   githubUrl?: string
+  xUrl?: string
+  googleCalendarUrl?: string
   vibeCheck?: string // Maps to raw_assets.voice_snippet
   objectives?: string[] // Maps to networking_goals
   // Base64 encoded PDFs (for server-side parsing)

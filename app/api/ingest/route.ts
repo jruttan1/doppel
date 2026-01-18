@@ -41,15 +41,17 @@ export async function POST(req: Request) {
     const linkedinRawText = user.linkedin_text || null;
 
     // normalize with gemini
-    const [normalizedResume, normalizedLinkedin, githubData] = await Promise.all([
+    const [normalizedResume, normalizedLinkedin, githubData, xSummary] = await Promise.all([
       resumeRawText ? normalizeResumeWithGemini(resumeRawText) : Promise.resolve(null),
       linkedinRawText ? normalizeLinkedinWithGemini(linkedinRawText) : Promise.resolve(null),
-      user.github_url ? fetchGitHubData(user.github_url) : Promise.resolve(null)
+      user.github_url ? fetchGitHubData(user.github_url) : Promise.resolve(null),
+      user.x_url ? fetchAndSummarizeX(user.x_url) : Promise.resolve(null)
     ]);
 
     console.log("Normalized Resume:", normalizedResume ? "✓" : "✗");
     console.log("Normalized LinkedIn:", normalizedLinkedin ? "✓" : "✗");
     console.log("Github Data:", githubData ? "✓" : "✗");
+    console.log("X Summary:", xSummary ? "✓" : "✗");
 
     // prepare final synthesis
     const { resume_text, linkedin_text, github_url, persona, ...userMetadata } = user;
@@ -75,10 +77,14 @@ ${normalizedLinkedin ? JSON.stringify(normalizedLinkedin, null, 2) : "Not provid
 **GitHub Repos:**
 ${githubData ? JSON.stringify(githubData, null, 2) : "Not provided"}
 
+**X/Twitter Analysis:**
+${xSummary ? JSON.stringify(xSummary, null, 2) : "Not provided"}
+
 GUIDELINES:
 - Resume is the source of truth for work history, technical details, and skills
 - LinkedIn provides soft skills, endorsements, and professional "vibe"
 - GitHub validates technical skills - weight repos by stars and recency
+- X/Twitter is the best signal for authentic voice, communication style, and current interests - heavily weight this for voice_snippet and personality
 - User metadata contains their explicit networking goals - preserve these exactly
 - Merge duplicate information intelligently (don't repeat the same skill twice)
 - Make intelligent assumptions about personality based on writing style and interests
@@ -125,6 +131,7 @@ OUTPUT SCHEMA:
         persona: finalPersona,
         tagline: tagline,
         skills: mergedSkills,
+        x_summary: xSummary || null,
         ingestion_status: 'complete'
       })
       .eq('id', id);
@@ -256,6 +263,131 @@ Preserve detail in experience descriptions. Include soft skills and leadership i
     return JSON.parse(result.response.text());
   } catch (e: any) {
     console.error("LinkedIn normalization error:", e.message);
+    return null;
+  }
+}
+
+// --- X/TWITTER ---
+
+const GUMLOOP_X_USER_ID = process.env.GUMLOOP_USER_ID || 'x847FlXvIMcKaILyaifOw8IUXAq1';
+const GUMLOOP_X_PIPELINE_ID = process.env.GUMLOOP_X_PIPELINE_ID || 'iWwFuUdxgnuakoco747u9N';
+
+async function fetchAndSummarizeX(xUrlOrUsername: string): Promise<any> {
+  try {
+    // Accept URL or plain username (with or without @) — pass username without @ to Gumloop
+    const match = xUrlOrUsername.match(/(?:x\.com|twitter\.com)\/([^\/\?]+)/);
+    const username = (match ? match[1] : xUrlOrUsername).replace(/^@/, '').trim();
+    
+    if (!username || username === 'home' || username === 'search') {
+      console.log("Invalid X username:", xUrlOrUsername);
+      return null;
+    }
+
+    console.log(`Fetching X data for: ${username}`);
+
+    // Call Gumloop to get tweets — pipeline expects username without @
+    const gumloopRes = await fetch(
+      `https://api.gumloop.com/api/v1/start_pipeline?user_id=${GUMLOOP_X_USER_ID}&saved_item_id=${GUMLOOP_X_PIPELINE_ID}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GUMLOOP_API_KEY}`
+        },
+        body: JSON.stringify({
+          pipeline_inputs: [
+            { input_name: 'username', value: username }
+          ]
+        })
+      }
+    );
+
+    if (!gumloopRes.ok) {
+      console.error("Gumloop API error:", gumloopRes.status);
+      return null;
+    }
+
+    const gumloopData = await gumloopRes.json();
+    const runId = gumloopData.run_id;
+
+    if (!runId) {
+      console.error("No run_id from Gumloop");
+      return null;
+    }
+
+    // Poll for completion (max 30 seconds)
+    let tweets: string[] = [];
+    for (let i = 0; i < 15; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      
+      const statusRes = await fetch(
+        `https://api.gumloop.com/api/v1/get_pl_run?run_id=${runId}&user_id=${GUMLOOP_X_USER_ID}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.GUMLOOP_API_KEY}`
+          }
+        }
+      );
+
+      if (!statusRes.ok) continue;
+
+      const statusData = await statusRes.json();
+      
+      if (statusData.state === 'DONE') {
+        // Extract tweets from outputs
+        tweets = statusData.outputs?.tweets || statusData.outputs?.output || [];
+        if (typeof tweets === 'string') {
+          tweets = tweets.split('\n').filter((t: string) => t.trim());
+        }
+        break;
+      } else if (statusData.state === 'FAILED') {
+        console.error("Gumloop pipeline failed");
+        return null;
+      }
+    }
+
+    if (!tweets || tweets.length === 0) {
+      console.log("No tweets retrieved");
+      return null;
+    }
+
+    console.log(`Got ${tweets.length} tweets, summarizing...`);
+
+    // Summarize with Gemini
+    const summaryPrompt = `
+You are analyzing someone's Twitter/X presence to understand their authentic voice and personality.
+
+TWEETS (last 25):
+"""
+${Array.isArray(tweets) ? tweets.join('\n---\n') : tweets}
+"""
+
+Analyze these tweets and return JSON with:
+{
+  "communication_style": "String - how they write (casual, technical, witty, thoughtful, etc.)",
+  "tone": "String - overall tone (friendly, sarcastic, professional, provocative, etc.)",
+  "key_interests": ["Array of topics they frequently discuss"],
+  "personality_traits": ["Array of personality traits evident from their tweets"],
+  "notable_opinions": ["Array of strong opinions or takes they've shared"],
+  "humor_style": "String or null - if they use humor, describe it",
+  "engagement_style": "String - how they interact (asks questions, shares links, hot takes, threads, etc.)",
+  "sample_voice": "String - write 1-2 sentences that capture how this person would naturally write/speak"
+}
+
+Focus on authentic voice signals. Ignore promotional content or retweets.
+`;
+
+    const result = await flashModel.generateContent(summaryPrompt);
+    const summary = JSON.parse(result.response.text());
+    
+    return {
+      username,
+      tweet_count: tweets.length,
+      ...summary
+    };
+
+  } catch (e: any) {
+    console.error("X fetch/summarize error:", e.message);
     return null;
   }
 }

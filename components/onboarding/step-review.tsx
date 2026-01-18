@@ -39,6 +39,8 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
           resumeBase64: soulData.resumeBase64 || null,
           linkedinBase64: soulData.linkedinBase64 || null,
           githubUrl: soulData.githubUrl || null,
+          xUrl: soulData.xUrl || null,
+          googleCalendarUrl: soulData.googleCalendarUrl || null,
           networkingGoals: soulData.networking_goals || [],
           voiceSignature: soulData.raw_assets?.voice_snippet || null,
           skills: soulData.raw_assets?.interests || [], // interests = skills
@@ -74,7 +76,7 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
 
       <div className="space-y-6">
         {/* Documents */}
-        {(soulData.documents && soulData.documents.length > 0) || soulData.linkedinUrl || soulData.githubUrl ? (
+        {(soulData.documents && soulData.documents.length > 0) || soulData.linkedinUrl || soulData.githubUrl || soulData.xUrl || soulData.googleCalendarUrl ? (
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl p-5">
             <div className="flex items-center gap-2 text-xs text-white/40 mb-4">
               <FileText className="w-3.5 h-3.5" />
@@ -98,6 +100,12 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
               )}
               {soulData.githubUrl && (
                 <p className="text-sm text-white/50">GitHub: {soulData.githubUrl}</p>
+              )}
+              {soulData.xUrl && (
+                <p className="text-sm text-white/50">X: {soulData.xUrl}</p>
+              )}
+              {soulData.googleCalendarUrl && (
+                <p className="text-sm text-white/50">Google Calendar: {soulData.googleCalendarUrl}</p>
               )}
             </div>
           </div>

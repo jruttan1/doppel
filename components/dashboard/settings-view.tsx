@@ -28,7 +28,8 @@ import {
   Camera,
   Briefcase,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Calendar
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -69,7 +70,9 @@ export function SettingsView() {
   const [headline, setHeadline] = useState("")
   const [location, setLocation] = useState("")
   const [linkedinUrl, setLinkedinUrl] = useState("")
+  const [xUrl, setXUrl] = useState("")
   const [githubUrl, setGithubUrl] = useState("")
+  const [googleCalendarUrl, setGoogleCalendarUrl] = useState("")
   
   // Agent settings
   const [agentActive, setAgentActive] = useState(true)
@@ -122,7 +125,9 @@ export function SettingsView() {
         setHeadline(profile.tagline || "")
         setLocation(profile.location || "")
         setLinkedinUrl(profile.linkedin_url || "")
+        setXUrl(profile.x_url || "")
         setGithubUrl(profile.github_url || "")
+        setGoogleCalendarUrl(profile.google_calendar_url || "")
         if (profile.email) setEmail(profile.email)
         
         // Helper to parse array fields (handle both array and JSON string formats)
@@ -215,7 +220,9 @@ export function SettingsView() {
           tagline: headline,
           location,
           linkedin_url: linkedinUrl,
+          x_url: xUrl,
           github_url: githubUrl,
+          google_calendar_url: googleCalendarUrl,
           networking_goals: networkingGoals,
           voice_signature: vibeCheck,
           skills: skills,
@@ -448,6 +455,22 @@ export function SettingsView() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="x" className="flex items-center gap-2">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    X (Twitter)
+                  </Label>
+                  <Input
+                    id="x"
+                    type="url"
+                    placeholder="https://x.com/..."
+                    value={xUrl}
+                    onChange={(e) => setXUrl(e.target.value)}
+                    className="bg-secondary/50"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="github" className="flex items-center gap-2">
                     <Github className="w-4 h-4" />
                     GitHub
@@ -458,6 +481,20 @@ export function SettingsView() {
                     placeholder="https://github.com/..."
                     value={githubUrl}
                     onChange={(e) => setGithubUrl(e.target.value)}
+                    className="bg-secondary/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="google-calendar" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Google Calendar
+                  </Label>
+                  <Input
+                    id="google-calendar"
+                    type="url"
+                    placeholder="https://calendar.google.com/..."
+                    value={googleCalendarUrl}
+                    onChange={(e) => setGoogleCalendarUrl(e.target.value)}
                     className="bg-secondary/50"
                   />
                 </div>
