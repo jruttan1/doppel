@@ -10,7 +10,11 @@ declare global {
   }
 }
 
-export function VantaBackground() {
+interface VantaBackgroundProps {
+  fixed?: boolean
+}
+
+export function VantaBackground({ fixed = false }: VantaBackgroundProps) {
   const vantaRef = useRef<HTMLDivElement>(null)
   const vantaEffect = useRef<any>(null)
   const [threeLoaded, setThreeLoaded] = useState(false)
@@ -116,7 +120,7 @@ export function VantaBackground() {
           }}
         />
       )}
-      <div ref={vantaRef} className="fixed inset-0 z-0" />
+      <div ref={vantaRef} className={fixed ? "fixed inset-0 z-0" : "absolute inset-0 z-0"} />
     </>
   )
 }

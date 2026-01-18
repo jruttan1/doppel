@@ -22,11 +22,8 @@ export function AuthLayout({ children, title, description }: AuthLayoutProps) {
 
           <div className="max-w-md">
             <blockquote className="text-2xl font-medium leading-relaxed mb-6 text-balance">
-              &ldquo;Don&apos;t replace the human connection. Instead, simulate the room to find the right connection.&rdquo;
+              &ldquo;Deploy your digital twin to vet thousands of potential co-founders and hires while you sleep. Only take the meetings that matter.&rdquo;
             </blockquote>
-            <p className="text-muted-foreground">
-              Your AI agent vets thousands of professionals while you sleep, finding the perfect matches for your goals.
-            </p>
           </div>
 
        

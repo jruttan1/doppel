@@ -27,10 +27,16 @@ const steps = [
   },
 ]
 
+import Orb from "./orb"
+
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 relative bg-background">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="how-it-works" className="py-24 relative bg-background overflow-hidden min-h-[600px] flex items-center">
+      <div className="absolute inset-0 z-0">
+        <Orb hue={180} hoverIntensity={0.3} />
+      </div>
+      <div className="absolute inset-0 bg-black/30 z-[1]" />
+      <div className="relative z-[2] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 mb-4 shadow-sm">
             <span className="text-sm font-medium text-teal-700 dark:text-teal-300 uppercase tracking-wide">How It Works</span>
@@ -48,7 +54,7 @@ export function HowItWorks() {
                 <div className="hidden lg:block absolute top-12 left-full w-full h-px bg-gradient-to-r from-teal-200 dark:from-teal-800 to-transparent z-0" />
               )}
 
-              <div className="relative bg-card rounded-lg p-6 h-full transition-all duration-200 hover:shadow-lg border border-border shadow-md">
+              <div className="relative bg-card/90 backdrop-blur-sm rounded-lg p-6 h-full transition-all duration-200 hover:shadow-lg border border-border shadow-md z-10">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 rounded bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center shrink-0">
                     <step.icon className="w-6 h-6 text-teal-600 dark:text-teal-400" />

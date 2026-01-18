@@ -1,12 +1,15 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import { VantaBackground } from "./vanta-background"
 
 export function CTA() {
   return (
-    <section className="py-24 bg-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative bg-card rounded-lg p-8 sm:p-12 lg:p-16 text-center border border-border shadow-lg">
+    <section className="relative py-24 bg-background overflow-hidden min-h-[600px] flex items-center">
+      <VantaBackground fixed={false} />
+      <div className="absolute inset-0 bg-black/40 z-[1]" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-[2] w-full">
+        <div className="relative bg-card/80 backdrop-blur-sm rounded-lg p-8 sm:p-12 lg:p-16 text-center border border-border shadow-lg">
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-balance">
               Stop Networking.
