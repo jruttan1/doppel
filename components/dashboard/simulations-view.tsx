@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -205,6 +207,7 @@ export function SimulationsView() {
   const [filter, setFilter] = useState<"all" | "completed" | "in_progress" | "failed">("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSimulation, setSelectedSimulation] = useState<Simulation | null>(null)
+  const [isRunning, setIsRunning] = useState(false)
 
   const filteredSimulations = MOCK_SIMULATIONS.filter((sim) => {
     if (filter !== "all" && sim.status !== filter) return false
@@ -238,6 +241,39 @@ export function SimulationsView() {
     }
   }
 
+  const handleRunSimulation = async () => {
+    setIsRunning(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert("You must be logged in")
+        return
+      }
+
+      const res = await fetch('/api/simulation/instant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        // Refresh the page or update state to show new simulation
+        window.location.reload()
+      } else {
+        alert(data.error || "Failed to run simulation")
+      }
+    } catch (error: any) {
+      console.error("Simulation error:", error)
+      alert(error.message || "Failed to run simulation")
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -249,14 +285,33 @@ export function SimulationsView() {
             <TabsTrigger value="failed">Failed</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="relative w-full sm:w-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search simulations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-full sm:w-64 bg-secondary/50"
-          />
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search simulations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-full bg-secondary/50"
+            />
+          </div>
+          <Button
+            onClick={handleRunSimulation}
+            disabled={isRunning}
+            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Running...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Run Simulation
+              </>
+            )}
+          </Button>
         </div>
       </div>
 

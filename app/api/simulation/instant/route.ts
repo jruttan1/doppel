@@ -1,0 +1,116 @@
+import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { DoppelAgent } from '@/lib/DoppelAgent';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SERVICE_ROLE_KEY!
+);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+export const maxDuration = 60; // Allow 60s for the whole chat loop
+
+export async function POST(req: Request) {
+  try {
+    const { userId } = await req.json();
+
+    // 1. FETCH MY PROFILE
+    const { data: me, error: myError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (myError || !me) return Response.json({ error: "User not found" }, { status: 404 });
+
+    // 2. FIND A PARTNER (Instant SQL Search)
+    const { data: partners, error: matchError } = await supabase.rpc('get_instant_match', { my_id: userId });
+    
+    if (matchError) throw matchError;
+    if (!partners || partners.length === 0) {
+      return Response.json({ message: "No eligible matches found yet. Try adding a dummy user!" });
+    }
+
+    const partner = partners[0]; // The SQL query returned the best random match
+
+    // 3. SETUP AGENTS
+    const myPersona = {
+      id: me.id,
+      name: me.name || 'User',
+      ...me.persona
+    };
+    
+    const partnerPersona = {
+      id: partner.other_id,
+      name: partner.other_data?.identity?.name || partner.other_data?.name || 'Partner',
+      ...partner.other_data
+    };
+
+    const myAgent = new DoppelAgent(myPersona);
+    const partnerAgent = new DoppelAgent(partnerPersona);
+
+    console.log(`🚀 Starting Demo Match: ${myAgent.name} vs ${partnerAgent.name}`);
+
+    // 4. RUN THE CHAT LOOP
+    const transcript: any[] = [];
+    let lastMessage: string | null = null;
+    let active = true;
+
+    for (let i = 0; i < 5; i++) { // 5 turns is enough for a demo
+      if (!active) break;
+
+      // My Agent Speaks
+      const textA = await myAgent.reply(lastMessage);
+      transcript.push({ speaker: myAgent.name, id: myAgent.id, text: textA });
+      if (textA.includes("[END_CONVERSATION]")) { active = false; break; }
+      lastMessage = textA;
+
+      // Partner Agent Responds
+      const textB = await partnerAgent.reply(lastMessage);
+      transcript.push({ speaker: partnerAgent.name, id: partnerAgent.id, text: textB });
+      if (textB.includes("[END_CONVERSATION]")) { active = false; break; }
+      lastMessage = textB;
+    }
+
+    // 5. SCORE IT
+    const analysis = await analyzeSimulation(transcript);
+
+    // 6. SAVE & RETURN
+    // We insert into DB so it shows up in history, but we ALSO return it directly for the UI
+    const { data: simulation, error: insertError } = await supabase
+      .from('simulations')
+      .insert({
+        participant1: me.id,
+        participant2: partner.other_id,
+        transcript: transcript,
+        score: analysis.score
+        // Note: key_takeaways and status fields may not exist in schema - check DB
+      })
+      .select()
+      .single();
+    
+    if (insertError) {
+      console.error("Failed to save simulation:", insertError);
+      // Still return the simulation even if DB save fails
+    }
+
+    return Response.json({ success: true, simulation, partner_name: partnerAgent.name });
+
+  } catch (e: any) {
+    console.error("Demo Failed:", e);
+    return Response.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// Reuse your analysis helper
+async function analyzeSimulation(transcript: any[]) {
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: `
+      Analyze this chat. Return JSON: { "score": number (0-100), "takeaways": ["string"] }
+      TRANSCRIPT: ${JSON.stringify(transcript)}
+    ` }] }],
+    generationConfig: { responseMimeType: "application/json" }
+  });
+  return JSON.parse(result.response.text());
+}
