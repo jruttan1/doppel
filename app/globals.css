@@ -83,9 +83,9 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", sans-serif;
-  --font-mono: "Inter", monospace;
-  --font-flex: "Inter", sans-serif;
+  --font-sans: "Bitter", serif;
+  --font-mono: "Bitter", serif;
+  --font-flex: "Bitter", serif;
   --font-serif: "Bitter", serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -136,10 +136,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", sans-serif;
+    font-family: "Bitter", serif;
   }
   p, span, div, a, button, input, textarea, select, label {
-    font-family: "Inter", sans-serif;
+    font-family: "Bitter", serif;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: "Bitter", serif;

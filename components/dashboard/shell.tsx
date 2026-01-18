@@ -2,6 +2,7 @@
 
 import type React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -145,7 +146,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const displayEmail = userData.email || ""
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
@@ -157,7 +158,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="font-bold font-mono">Doppel</span>
+            <span className="font-bold font-serif">Doppel</span>
           </Link>
         </div>
       </header>
@@ -173,9 +174,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="h-14 lg:h-16 flex items-center px-6 border-b border-border">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <span className="text-xl font-bold font-mono">Doppel</span>
+          <div className="h-12 flex items-center px-5 border-b border-border">
+            <Link href="/dashboard" className="flex items-center gap-1">
+              <Image src="/logo.svg" alt="Doppel" width={40} height={40} />
+              <span className="text-xl font-bold font-serif">Doppel</span>
             </Link>
           </div>
 
@@ -267,7 +269,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <main 
         className={cn(
-          "pt-14 lg:pt-0 h-full flex flex-col overflow-hidden min-w-0",
+          "pt-14 lg:pt-0 h-screen flex flex-col overflow-hidden min-w-0",
           !isResizing && "transition-[padding-left]"
         )}
         style={{ paddingLeft: isDesktop ? `${sidebarWidth}px` : undefined }}
@@ -321,7 +323,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </DropdownMenu>
           </div>
         </div>
-        <div className="flex-1 min-h-0 min-w-0 overflow-hidden p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden">{children}</div>
       </main>
     </div>
   )

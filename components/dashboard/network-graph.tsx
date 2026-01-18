@@ -656,8 +656,8 @@ export function NetworkGraph() {
 
   return (
     <>
-      <Card className="bg-card border-border shadow-md h-full flex flex-col overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 flex-shrink-0">
+      <Card className="bg-card border-border shadow-md h-full flex flex-col overflow-hidden relative">
+        <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-3 px-4 flex-shrink-0 h-auto">
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -665,7 +665,7 @@ export function NetworkGraph() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-48 h-9 bg-secondary/50"
+                className="pl-9 w-48 h-8 bg-secondary/50 text-xs"
               />
             </div>
             <div className="relative z-10 pointer-events-auto">
@@ -675,14 +675,14 @@ export function NetworkGraph() {
                   setFilter(newFilter)
                 }
               }}>
-                <TabsList className="bg-secondary/50 pointer-events-auto">
-                  <TabsTrigger value="all" className="text-xs pointer-events-auto">
+                <TabsList className="bg-secondary/50 pointer-events-auto h-8">
+                  <TabsTrigger value="all" className="text-[10px] px-2 h-7 pointer-events-auto">
                     All
                   </TabsTrigger>
-                  <TabsTrigger value="matched" className="text-xs pointer-events-auto">
+                  <TabsTrigger value="matched" className="text-[10px] px-2 h-7 pointer-events-auto">
                     Matches
                   </TabsTrigger>
-                  <TabsTrigger value="simulated" className="text-xs pointer-events-auto">
+                  <TabsTrigger value="simulated" className="text-[10px] px-2 h-7 pointer-events-auto">
                     Simulated
                   </TabsTrigger>
                 </TabsList>
@@ -692,7 +692,7 @@ export function NetworkGraph() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 cursor-pointer pointer-events-auto"
+                className="h-7 w-7 cursor-pointer pointer-events-auto"
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -702,12 +702,12 @@ export function NetworkGraph() {
                 type="button"
                 disabled={false}
               >
-                <ZoomIn className="h-4 w-4" />
+                <ZoomIn className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 cursor-pointer pointer-events-auto"
+                className="h-7 w-7 cursor-pointer pointer-events-auto"
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -717,12 +717,27 @@ export function NetworkGraph() {
                 type="button"
                 disabled={false}
               >
-                <ZoomOut className="h-4 w-4" />
+                <ZoomOut className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
+          {/* Stats in header */}
+          <div className="glass px-2.5 py-1.5 rounded-lg">
+            <div className="flex items-center gap-4 text-xs">
+              <div>
+                <p className="text-muted-foreground text-[10px] leading-tight">Total Nodes</p>
+                <p className="font-bold text-sm leading-tight">{nodes.length}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-[10px] leading-tight">High Matches</p>
+                <p className="font-bold text-sm text-green-500 leading-tight">
+                  {nodes.filter((n) => n.status === "matched").length}
+                </p>
+              </div>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="p-0 h-full">
+        <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
           <div ref={containerRef} className="relative h-full w-full">
             <canvas
               ref={canvasRef}
@@ -754,21 +769,6 @@ export function NetworkGraph() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="absolute top-4 right-4 glass px-4 py-3 rounded-lg">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground text-xs">Total Nodes</p>
-                  <p className="font-bold text-lg">{nodes.length}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">High Matches</p>
-                  <p className="font-bold text-lg text-green-500">
-                    {nodes.filter((n) => n.status === "matched").length}
-                  </p>
-                </div>
-              </div>
-            </div>
 
             {/* Hover tooltip */}
             {hoveredNode && (

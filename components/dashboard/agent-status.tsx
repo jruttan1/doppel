@@ -66,11 +66,10 @@ export function AgentStatus() {
 
   return (
     <Card className="bg-card border-border overflow-hidden shadow-md">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
-      <CardContent className="relative p-4 sm:p-6">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Zap className="w-6 h-6 text-teal-500 dark:text-teal-400" />
+        
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold">Your Doppel</h3>
@@ -97,7 +96,8 @@ export function AgentStatus() {
                 handleRunSimulation()
               }}
               disabled={isRunningSimulation}
-              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="sm"
+              className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground border-0 shadow-sm"
               type="button"
             >
               {isRunningSimulation ? (
@@ -117,16 +117,16 @@ export function AgentStatus() {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex-1 sm:flex-none gap-2 bg-transparent"
+              className="flex-1 sm:flex-none gap-2 bg-secondary/50 hover:bg-secondary border-border/50 text-foreground hover:text-foreground"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
             <Button
-              variant={isActive ? "outline" : "default"}
+              variant="outline"
               size="sm"
               onClick={() => setIsActive(!isActive)}
-              className={`flex-1 sm:flex-none gap-2 ${isActive ? "bg-transparent" : "bg-primary text-primary-foreground"}`}
+              className={`flex-1 sm:flex-none gap-2 bg-secondary/50 hover:bg-secondary border-border/50 text-foreground hover:text-foreground`}
             >
               {isActive ? (
                 <>
