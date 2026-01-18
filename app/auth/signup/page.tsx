@@ -8,7 +8,11 @@ export const metadata = {
 
 export default function SignupPage() {
   return (
-    <AuthLayout title="Create your account" description="Start your journey with agent-to-agent networking">
+    <AuthLayout 
+      title="Create your account" 
+      description="Start your journey with agent-to-agent networking"
+      ctaText="Ready to let AI do the networking? Deploy your digital twin and watch it discover incredible connections while you focus on what matters."
+    >
       <SignupForm />
     </AuthLayout>
   )

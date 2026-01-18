@@ -25,7 +25,6 @@ import {
   Plus,
   Bell,
   Shield,
-  Camera,
   Briefcase,
   Loader2,
   CheckCircle2,
@@ -370,14 +369,9 @@ export function SettingsView() {
           <CardContent className="space-y-5">
             {/* Avatar */}
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <Avatar className="w-20 h-20">
-                  <AvatarFallback className="text-xl">{getInitials(name || email)}</AvatarFallback>
-                </Avatar>
-                <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                  <Camera className="w-3 h-3" />
-                </button>
-              </div>
+              <Avatar className="w-20 h-20">
+                <AvatarFallback className="text-xl">{getInitials(name || email)}</AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium truncate">{name || "Add your name"}</h3>
                 <p className="text-sm text-muted-foreground truncate">{headline || "Add a headline"}</p>

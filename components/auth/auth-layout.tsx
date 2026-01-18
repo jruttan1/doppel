@@ -1,28 +1,33 @@
+"use client"
+
 import type React from "react"
 import Link from "next/link"
+import Orb from "@/components/landing/orb"
 
 interface AuthLayoutProps {
   children: React.ReactNode
   title: string
   description: string
+  ctaText?: string
 }
 
-export function AuthLayout({ children, title, description }: AuthLayoutProps) {
+export function AuthLayout({ children, title, description, ctaText }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 relative bg-card overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+      <div className="hidden lg:flex lg:w-1/2 relative bg-black overflow-hidden">
+        <div className="absolute inset-0 z-[2]">
+          <Orb hue={61} hoverIntensity={0.42} backgroundColor="#000000" />
+        </div>
+        <div className="absolute inset-0 bg-black/40 z-[3]" />
 
-        <div className="relative flex flex-col justify-between p-12 z-10">
+        <div className="relative flex flex-col justify-between p-12 z-[4]">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold font-mono">Doppel</span>
+            <span className="text-2xl font-bold font-mono text-white">Doppel</span>
           </Link>
 
           <div className="max-w-md">
-            <blockquote className="text-2xl font-medium leading-relaxed mb-6 text-balance">
-              &ldquo;Deploy your digital twin to vet thousands of potential co-founders and hires while you sleep. Only take the meetings that matter.&rdquo;
+            <blockquote className="text-2xl font-medium leading-relaxed mb-6 text-balance text-white">
+              {ctaText || "Join the future of networking where AI agents connect on your behalf."}
             </blockquote>
           </div>
 
