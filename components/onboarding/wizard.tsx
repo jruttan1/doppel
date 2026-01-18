@@ -21,14 +21,9 @@ export function OnboardingWizard() {
     networking_goals: [],
     raw_assets: {
       voice_snippet: "",
-      experience_log: [],
-      project_list: [],
-      interests: [],
     },
     filters: {
       locations: [],
-      skills: [],
-      experienceYears: 0,
     },
     isHiring: false,
     hiringSkillsDesired: [],

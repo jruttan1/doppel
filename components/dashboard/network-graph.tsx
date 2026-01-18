@@ -286,21 +286,54 @@ export function NetworkGraph() {
         ctx.stroke()
       })
 
-      // Draw inter-node connections
+      // Draw inter-node connections (web-like network showing all connections)
+      // Show connections between all nodes that are matched or connected
       nodes.forEach((node, i) => {
         if (node.status === "matched" || node.status === "connected") {
           nodes.slice(i + 1).forEach((other) => {
+            // Show connections between any matched/connected nodes (not just to center)
             if (other.status === "matched" || other.status === "connected") {
               const isNodeFiltered = currentFilteredNodes.some((n) => n.id === node.id)
               const isOtherFiltered = currentFilteredNodes.some((n) => n.id === other.id)
               if (!isNodeFiltered || !isOtherFiltered) return
               const dist = Math.hypot(node.x - other.x, node.y - other.y)
-              if (dist < 200) {
+              // Increase connection distance threshold to show more connections
+              if (dist < 300) {
                 ctx.beginPath()
                 ctx.moveTo(node.x, node.y)
                 ctx.lineTo(other.x, other.y)
-                ctx.strokeStyle = `rgba(34, 197, 94, ${0.15 * (1 - dist / 200)})`
+                // Use different colors for different connection types
+                const connectionOpacity = 0.2 * (1 - dist / 300)
+                if (node.status === "connected" && other.status === "connected") {
+                  ctx.strokeStyle = `rgba(168, 85, 247, ${connectionOpacity})`
+                } else {
+                  ctx.strokeStyle = `rgba(34, 197, 94, ${connectionOpacity})`
+                }
                 ctx.lineWidth = 1
+                ctx.stroke()
+              }
+            }
+          })
+        }
+      })
+      
+      // Also show connections from simulated nodes to matched/connected nodes
+      nodes.forEach((node) => {
+        if (node.status === "simulated") {
+          const isNodeFiltered = currentFilteredNodes.some((n) => n.id === node.id)
+          if (!isNodeFiltered) return
+          
+          nodes.forEach((other) => {
+            if ((other.status === "matched" || other.status === "connected") && other.id !== node.id) {
+              const isOtherFiltered = currentFilteredNodes.some((n) => n.id === other.id)
+              if (!isOtherFiltered) return
+              const dist = Math.hypot(node.x - other.x, node.y - other.y)
+              if (dist < 250) {
+                ctx.beginPath()
+                ctx.moveTo(node.x, node.y)
+                ctx.lineTo(other.x, other.y)
+                ctx.strokeStyle = `rgba(45, 212, 191, ${0.1 * (1 - dist / 250)})`
+                ctx.lineWidth = 0.5
                 ctx.stroke()
               }
             }
@@ -357,7 +390,7 @@ export function NetworkGraph() {
 
         // Draw initials inside the node (NO NAME BELOW)
         const textOpacity = isFiltered ? 0.95 : 0.4
-        ctx.fillStyle = `rgba(255, 255, 255, ${textOpacity})`
+        ctx.fillStyle = `rgba(0, 0, 0, ${textOpacity})`
         ctx.font = `bold ${Math.max(8, colors.size * 0.5)}px sans-serif`
         ctx.textAlign = "center"
         ctx.textBaseline = "middle"
