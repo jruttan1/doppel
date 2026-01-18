@@ -18,3 +18,4 @@
 | participant2 | uuid | FK. The target user. |
 | score | int | 0-100 compatibility rating. |
 | transcript | jsonb | The raw chat logs between the two agents. |
+| takeaways | jsonb | Array of key insights from the AI analysis. |
