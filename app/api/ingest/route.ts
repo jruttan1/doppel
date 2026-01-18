@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
     if (fetchError || !user) throw new Error(`User not found: ${fetchError?.message}`);
 
-    // Raw text is already in the database from client-side PDF parsing
+    // Raw text extracted from PDFs using Gemini Vision API (stored in database)
     const resumeRawText = user.resume_text || null;
     const linkedinRawText = user.linkedin_text || null;
 
@@ -65,6 +65,13 @@ export async function POST(req: Request) {
     
     // Use stored x_summary from DB if available, otherwise use fresh xSummary
     const xSummaryToUse = storedXSummary || xSummary;
+    
+    // Debug: Log X summary being used
+    if (xSummaryToUse) {
+      console.log("X Summary being used:", JSON.stringify(xSummaryToUse, null, 2));
+    } else {
+      console.log("⚠️ No X Summary available (neither stored nor fresh)");
+    }
     
     // final gemini call - synthesize everything into persona
     const synthesisPrompt = `
@@ -94,7 +101,7 @@ GUIDELINES:
 - Resume is the source of truth for work history, technical details, and skills
 - LinkedIn provides soft skills, endorsements, and professional "vibe"
 - GitHub validates technical skills - weight repos by stars and recency
-- X/Twitter analysis provides insights into communication style and personality, but DO NOT mix it into voice_snippet
+- X/Twitter analysis is CRITICAL for understanding authentic personality - incorporate ALL fields from X/Twitter Analysis
 - User metadata contains their explicit networking goals - preserve these exactly
 - Merge duplicate information intelligently (don't repeat the same skill twice)
 - Make intelligent assumptions about personality based on writing style and interests
@@ -103,7 +110,17 @@ CRITICAL REQUIREMENTS:
 1. **experience_log MUST be populated** - Extract ALL work experience from Resume.experience and LinkedIn.experience arrays. Format each as: "Role @ Company (StartDate-EndDate) - Detailed description with key achievements, metrics, and impact. Include technologies used and team size if relevant."
 2. **voice_snippet MUST be ONLY the user's original voice_signature** - Use the exact text from userMetadata.voice_signature. Do NOT combine with X/Twitter analysis or add any other text.
 3. **project_list** - Include GitHub repos formatted as: "Repo: name (Language) - Description with impact/stars if notable"
-4. **interests** - Combine interests from LinkedIn, GitHub topics, X/Twitter key_interests, and user metadata
+4. **interests** - MUST incorporate X/Twitter key_interests. Combine interests from:
+   - X/Twitter Analysis.key_interests (REQUIRED if present)
+   - LinkedIn interests/about section
+   - GitHub repo topics/descriptions
+   - User metadata interests
+   - X/Twitter notable_opinions (as interests)
+5. **X/Twitter Integration** - The X/Twitter Analysis contains valuable personality data:
+   - Use communication_style, tone, personality_traits to inform the overall persona understanding
+   - Incorporate key_interests into the interests array
+   - Use notable_opinions to add depth to interests
+   - The sample_voice can inform how to interpret their communication style (but don't add it to voice_snippet)
 
 OUTPUT SCHEMA:
 {
@@ -119,7 +136,7 @@ OUTPUT SCHEMA:
     "voice_snippet": "String - EXACTLY the user provided voice_signature from userMetadata, nothing else",
     "experience_log": ["Array - REQUIRED. Extract from Resume.experience and LinkedIn.experience. Format: 'Role @ Company (Years) - Description with metrics and achievements'"],
     "project_list": ["Array of project strings like: 'Repo: name (Language) - Description with impact/stars if notable'"],
-    "interests": ["Array of personal/professional interests - from linkedin, github topics, x/twitter, user metadata"]
+    "interests": ["Array - REQUIRED. MUST include X/Twitter Analysis.key_interests if present. Also include: LinkedIn interests, GitHub topics, X/Twitter notable_opinions, and user metadata interests. Be comprehensive and include all relevant topics from X/Twitter analysis."]
   }
 }
 `;

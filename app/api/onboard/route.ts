@@ -1,39 +1,45 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SERVICE_ROLE_KEY!
 );
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const flashModel = genAI.getGenerativeModel({ 
+  model: "gemini-2.5-flash",
+  generationConfig: {
+    responseMimeType: "text/plain"
+  }
+});
+
 export const maxDuration = 60;
 
-// PDF text extraction using pdfjs-dist (works better in Next.js serverless)
+// PDF text extraction using Gemini Vision API (much more reliable!)
 async function extractPdfText(base64: string): Promise<string | null> {
   try {
-    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    console.log("Extracting PDF text using Gemini Vision API...");
     
-    const buffer = Buffer.from(base64, 'base64');
+    const result = await flashModel.generateContent([
+      {
+        inlineData: {
+          mimeType: "application/pdf",
+          data: base64
+        }
+      },
+      {
+        text: "Extract ALL text from this PDF document. Preserve the structure, formatting, and all content including headers, bullet points, dates, and technical details. Return only the extracted text, nothing else."
+      }
+    ]);
     
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: buffer });
-    const pdf = await loadingTask.promise;
-    
-    // Extract text from all pages
-    let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n';
-    }
-    
-    return fullText.trim() || null;
+    const text = result.response.text();
+    console.log(`Extracted ${text.length} characters from PDF`);
+    return text.trim() || null;
   } catch (e: any) {
-    console.error("PDF parse error:", e.message);
-    console.error("PDF parse error stack:", e.stack);
+    console.error("PDF extraction error:", e.message);
+    console.error("PDF extraction error stack:", e.stack);
     return null;
   }
 }
