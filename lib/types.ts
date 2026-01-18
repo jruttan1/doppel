@@ -143,15 +143,10 @@ export interface SoulFileData {
   // Raw assets
   raw_assets: {
     voice_snippet: string
-    experience_log: string[]
-    project_list: string[]
-    interests: string[]
   }
   // Filters (for gatekeeper)
   filters: {
     locations: string[]
-    skills: string[]
-    experienceYears: number
   }
   // Legacy fields for backward compatibility
   documents?: { name: string; type: string }[]

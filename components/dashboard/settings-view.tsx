@@ -10,12 +10,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Github, Linkedin, MessageSquare, Target, Filter, X, Upload, MapPin, Code, Clock, Heart, Briefcase, FolderKanban, Plus } from "lucide-react"
+import { FileText, Github, Linkedin, MessageSquare, Target, Filter, X, Upload, MapPin, Code, Plus } from "lucide-react"
 import type { SoulFileData } from "@/lib/types"
 
 const SUGGESTED_LOCATIONS = ["North America", "Europe", "Remote", "San Francisco", "New York", "London", "Singapore"]
 const SUGGESTED_SKILLS = ["React", "Python", "TypeScript", "AI/ML", "Product Management", "Go", "Rust", "Design", "Distributed Systems", "Backend Development", "Kubernetes", "LLMs"]
-const SUGGESTED_INTERESTS = ["LLMs", "High-Performance Computing", "Mechanical Keyboards", "Biohacking", "Indie Hacking", "Espresso Brewing", "Open Source", "Startups", "AI/ML", "Distributed Systems", "Developer Tools", "Product Design"]
 
 export function SettingsView() {
   const searchParams = useSearchParams()
@@ -29,14 +28,9 @@ export function SettingsView() {
     networking_goals: [],
     raw_assets: {
       voice_snippet: "",
-      experience_log: [],
-      project_list: [],
-      interests: [],
     },
     filters: {
       locations: [],
-      skills: [],
-      experienceYears: 0,
     },
   })
 
@@ -46,21 +40,12 @@ export function SettingsView() {
   const [skillsPossessed, setSkillsPossessed] = useState<string[]>(soulData.skills_possessed || [])
   const [skillsDesired, setSkillsDesired] = useState<string[]>(soulData.skills_desired || [])
   const [networkingGoals, setNetworkingGoals] = useState<string[]>(soulData.networking_goals || [])
-  const [experienceLog, setExperienceLog] = useState<string[]>(soulData.raw_assets?.experience_log || [])
-  const [projectList, setProjectList] = useState<string[]>(soulData.raw_assets?.project_list || [])
-  const [interests, setInterests] = useState<string[]>(soulData.raw_assets?.interests || [])
   const [locations, setLocations] = useState<string[]>(soulData.filters?.locations || [])
-  const [filterSkills, setFilterSkills] = useState<string[]>(soulData.filters?.skills || [])
-  const [experienceYears, setExperienceYears] = useState(soulData.filters?.experienceYears || 0)
   
   const [possessedInput, setPossessedInput] = useState("")
   const [desiredInput, setDesiredInput] = useState("")
   const [goalInput, setGoalInput] = useState("")
-  const [currentExperience, setCurrentExperience] = useState("")
-  const [currentProject, setCurrentProject] = useState("")
-  const [interestInput, setInterestInput] = useState("")
   const [locationInput, setLocationInput] = useState("")
-  const [skillInput, setSkillInput] = useState("")
 
   useEffect(() => {
     if (tabParam) {
@@ -101,39 +86,6 @@ export function SettingsView() {
     setNetworkingGoals((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const addExperience = () => {
-    if (currentExperience.trim()) {
-      setExperienceLog((prev) => [...prev, currentExperience.trim()])
-      setCurrentExperience("")
-    }
-  }
-
-  const removeExperience = (index: number) => {
-    setExperienceLog((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const addProject = () => {
-    if (currentProject.trim()) {
-      setProjectList((prev) => [...prev, currentProject.trim()])
-      setCurrentProject("")
-    }
-  }
-
-  const removeProject = (index: number) => {
-    setProjectList((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const addInterest = (interest: string) => {
-    if (interest && !interests.includes(interest)) {
-      setInterests((prev) => [...prev, interest])
-      setInterestInput("")
-    }
-  }
-
-  const removeInterest = (interest: string) => {
-    setInterests((prev) => prev.filter((i) => i !== interest))
-  }
-
   const addLocation = (location: string) => {
     if (location && !locations.includes(location)) {
       setLocations((prev) => [...prev, location])
@@ -143,17 +95,6 @@ export function SettingsView() {
 
   const removeLocation = (location: string) => {
     setLocations((prev) => prev.filter((l) => l !== location))
-  }
-
-  const addFilterSkill = (skill: string) => {
-    if (skill && !filterSkills.includes(skill)) {
-      setFilterSkills((prev) => [...prev, skill])
-      setSkillInput("")
-    }
-  }
-
-  const removeFilterSkill = (skill: string) => {
-    setFilterSkills((prev) => prev.filter((s) => s !== skill))
   }
 
   const handleSave = () => {
@@ -166,14 +107,9 @@ export function SettingsView() {
       networking_goals: networkingGoals,
       raw_assets: {
         voice_snippet: vibeCheck,
-        experience_log: experienceLog,
-        project_list: projectList,
-        interests,
       },
       filters: {
         locations,
-        skills: filterSkills,
-        experienceYears,
       },
     })
     // Show success message
@@ -193,14 +129,6 @@ export function SettingsView() {
         <TabsTrigger value="vibe" className="gap-2">
           <MessageSquare className="w-4 h-4" />
           Vibe Check
-        </TabsTrigger>
-        <TabsTrigger value="experience" className="gap-2">
-          <Briefcase className="w-4 h-4" />
-          Experience
-        </TabsTrigger>
-        <TabsTrigger value="interests" className="gap-2">
-          <Heart className="w-4 h-4" />
-          Interests
         </TabsTrigger>
         <TabsTrigger value="goals" className="gap-2">
           <Target className="w-4 h-4" />
@@ -430,150 +358,6 @@ export function SettingsView() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="experience" className="space-y-6">
-        <Card className="bg-card border-border shadow-md">
-          <CardHeader>
-            <CardTitle>Experience & Projects</CardTitle>
-            <CardDescription>Share your work history and notable projects.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-primary" />
-                <Label className="text-base font-medium">Experience</Label>
-              </div>
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="e.g., Senior Backend Engineer @ Stripe (2020-2023) - Core Payments Team. Led the migration of the legacy payment intents API..."
-                  value={currentExperience}
-                  onChange={(e) => setCurrentExperience(e.target.value)}
-                  className="min-h-[100px] bg-secondary/50 resize-none"
-                />
-                <Button onClick={addExperience} variant="outline" size="sm" className="gap-2 bg-transparent">
-                  <Plus className="w-4 h-4" />
-                  Add Experience
-                </Button>
-              </div>
-              {experienceLog.length > 0 && (
-                <div className="space-y-2">
-                  {experienceLog.map((exp, index) => (
-                    <div key={index} className="flex items-start gap-2 p-3 rounded-lg bg-secondary/30 border border-border">
-                      <p className="flex-1 text-sm">{exp}</p>
-                      <button
-                        onClick={() => removeExperience(index)}
-                        className="p-1 hover:bg-secondary rounded"
-                      >
-                        <X className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <FolderKanban className="w-4 h-4 text-primary" />
-                <Label className="text-base font-medium">Projects</Label>
-              </div>
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="e.g., Repo: rocket-rs (Rust) - A high performance, type-safe web server template designed for speed..."
-                  value={currentProject}
-                  onChange={(e) => setCurrentProject(e.target.value)}
-                  className="min-h-[100px] bg-secondary/50 resize-none"
-                />
-                <Button onClick={addProject} variant="outline" size="sm" className="gap-2 bg-transparent">
-                  <Plus className="w-4 h-4" />
-                  Add Project
-                </Button>
-              </div>
-              {projectList.length > 0 && (
-                <div className="space-y-2">
-                  {projectList.map((project, index) => (
-                    <div key={index} className="flex items-start gap-2 p-3 rounded-lg bg-secondary/30 border border-border">
-                      <p className="flex-1 text-sm">{project}</p>
-                      <button
-                        onClick={() => removeProject(index)}
-                        className="p-1 hover:bg-secondary rounded"
-                      >
-                        <X className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              Save Changes
-            </Button>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="interests" className="space-y-6">
-        <Card className="bg-card border-border shadow-md">
-          <CardHeader>
-            <CardTitle>Interests</CardTitle>
-            <CardDescription>Share your interests and hobbies.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add an interest..."
-                value={interestInput}
-                onChange={(e) => setInterestInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    addInterest(interestInput)
-                  }
-                }}
-                className="bg-secondary/50"
-              />
-              <Button onClick={() => addInterest(interestInput)} variant="outline" className="bg-transparent">
-                Add
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {interests.map((interest) => (
-                <Badge key={interest} variant="outline" className="gap-1">
-                  {interest}
-                  <button
-                    onClick={() => removeInterest(interest)}
-                    className="ml-1 hover:text-destructive"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-2 block">Suggestions</Label>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_INTERESTS.filter((i) => !interests.includes(i)).map((interest) => (
-                  <Button
-                    key={interest}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addInterest(interest)}
-                    className="bg-transparent text-xs"
-                  >
-                    + {interest}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              Save Changes
-            </Button>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
       <TabsContent value="goals" className="space-y-6">
         <Card className="bg-card border-border shadow-md">
           <CardHeader>
@@ -678,79 +462,6 @@ export function SettingsView() {
               </div>
             </div>
 
-            <Separator />
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Code className="w-4 h-4 text-primary" />
-                <Label className="text-base font-medium">Required Skills</Label>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {filterSkills.map((skill) => (
-                  <Badge key={skill} variant="outline" className="gap-1">
-                    {skill}
-                    <button
-                      onClick={() => removeFilterSkill(skill)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add skill..."
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      addFilterSkill(skillInput)
-                    }
-                  }}
-                  className="bg-secondary/50"
-                />
-                <Button onClick={() => addFilterSkill(skillInput)} variant="outline" className="bg-transparent">
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_SKILLS.filter((skill) => !filterSkills.includes(skill)).map((skill) => (
-                  <Button
-                    key={skill}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addFilterSkill(skill)}
-                    className="bg-transparent text-xs"
-                  >
-                    + {skill}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-primary" />
-                <Label className="text-base font-medium">Minimum Experience Years</Label>
-              </div>
-              <div className="space-y-2">
-                <Input
-                  type="number"
-                  min="0"
-                  max="50"
-                  value={experienceYears}
-                  onChange={(e) => setExperienceYears(Number(e.target.value))}
-                  className="bg-secondary/50 w-32"
-                />
-                <p className="text-sm text-muted-foreground">
-                  {experienceYears === 0 ? "No minimum requirement" : `At least ${experienceYears} years of experience`}
-                </p>
-              </div>
-            </div>
 
             <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               Save Changes

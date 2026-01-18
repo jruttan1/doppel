@@ -117,56 +117,6 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
           </Card>
         )}
 
-        {/* Experience & Projects */}
-        {((soulData.raw_assets?.experience_log && soulData.raw_assets.experience_log.length > 0) || (soulData.raw_assets?.project_list && soulData.raw_assets.project_list.length > 0)) && (
-          <Card className="bg-card border-border shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
-                <FileText className="w-4 h-4" />
-                Experience & Projects
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {soulData.raw_assets?.experience_log && soulData.raw_assets.experience_log.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Experience ({soulData.raw_assets.experience_log.length})</p>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {soulData.raw_assets.experience_log[0]}
-                  </p>
-                </div>
-              )}
-              {soulData.raw_assets?.project_list && soulData.raw_assets.project_list.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Projects ({soulData.raw_assets.project_list.length})</p>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {soulData.raw_assets.project_list[0]}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Interests */}
-        {soulData.raw_assets?.interests && soulData.raw_assets.interests.length > 0 && (
-          <Card className="bg-card border-border shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
-                <Target className="w-4 h-4" />
-                Interests
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-1">
-                {soulData.raw_assets.interests.map((interest) => (
-                  <Badge key={interest} variant="outline" className="text-xs">
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Networking Goals */}
         {soulData.networking_goals && soulData.networking_goals.length > 0 && (
@@ -207,23 +157,6 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
                   ))}
                 </div>
               </div>
-            )}
-            {soulData.filters?.skills && soulData.filters.skills.length > 0 && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Skills</p>
-                <div className="flex flex-wrap gap-1">
-                  {soulData.filters.skills.map((skill) => (
-                    <Badge key={skill} variant="outline" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {soulData.filters?.experienceYears !== undefined && soulData.filters.experienceYears > 0 && (
-              <p className="text-sm">
-                Minimum experience: <span className="font-medium">{soulData.filters.experienceYears}+ years</span>
-              </p>
             )}
           </CardContent>
         </Card>
