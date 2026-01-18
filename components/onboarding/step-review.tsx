@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, FileText, MessageCircle, Target, Heart, Loader2, Sparkles } from "lucide-react"
 import type { SoulFileData } from "@/lib/types"
+import { createClient } from "@/lib/supabase/client"
 
 interface StepReviewProps {
   soulData: Partial<SoulFileData>
@@ -14,11 +15,48 @@ interface StepReviewProps {
 export function StepReview({ soulData, onPrev }: StepReviewProps) {
   const router = useRouter()
   const [isDeploying, setIsDeploying] = useState(false)
+  const [deployError, setDeployError] = useState<string | null>(null)
 
   const handleDeploy = async () => {
     setIsDeploying(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    router.push("/dashboard")
+    setDeployError(null)
+    
+    try {
+      const supabase = createClient()
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error("You must be logged in to continue")
+      }
+      
+      // Call onboarding API to parse PDFs and save data
+      const onboardRes = await fetch('/api/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          resumeBase64: soulData.resumeBase64 || null,
+          linkedinBase64: soulData.linkedinBase64 || null,
+          githubUrl: soulData.githubUrl || null,
+          networkingGoals: soulData.networking_goals || [],
+          voiceSignature: soulData.raw_assets?.voice_snippet || null,
+          interests: soulData.raw_assets?.interests || [],
+        }),
+      })
+      
+      const onboardData = await onboardRes.json()
+      
+      if (!onboardData.success) {
+        throw new Error(onboardData.error || "Failed to save profile")
+      }
+      
+      router.push("/dashboard")
+    } catch (error: any) {
+      console.error("Deploy error:", error)
+      setDeployError(error.message || "Failed to save profile")
+      setIsDeploying(false)
+    }
   }
 
   return (
@@ -108,6 +146,12 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
                 <p key={index} className="text-sm text-white/60">• {goal}</p>
               ))}
             </div>
+          </div>
+        )}
+
+        {deployError && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {deployError}
           </div>
         )}
 

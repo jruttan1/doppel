@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, Github, Linkedin, Upload, X, ArrowRight, CheckCircle2 } from "lucide-react"
+import { FileText, Github, Linkedin, Upload, X, ArrowRight, CheckCircle2, Loader2 } from "lucide-react"
 import type { SoulFileData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +20,8 @@ export function StepDocuments({ soulData, updateSoulData, onNext }: StepDocument
   const [resumeFiles, setResumeFiles] = useState<File[]>([])
   const [linkedinFiles, setLinkedinFiles] = useState<File[]>([])
   const [githubFocused, setGithubFocused] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent, type: "resume" | "linkedin") => {
     e.preventDefault()
@@ -68,16 +70,62 @@ export function StepDocuments({ soulData, updateSoulData, onNext }: StepDocument
     }
   }
 
-  const handleNext = () => {
-    const allDocs = [
-      ...resumeFiles.map((f) => ({ name: f.name, type: "resume" as const })),
-      ...linkedinFiles.map((f) => ({ name: f.name, type: "linkedin" as const })),
-    ]
-    updateSoulData({
-      githubUrl,
-      documents: allDocs,
+  // Convert file to base64 for server-side parsing
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
     })
-    onNext()
+  }
+
+  const handleNext = async () => {
+    setIsUploading(true)
+    setUploadError(null)
+    
+    try {
+      let resumeBase64: string | null = null
+      let linkedinBase64: string | null = null
+      
+      // Convert resume to base64 if provided
+      if (resumeFiles.length > 0) {
+        const resumeFile = resumeFiles[0]
+        console.log("Processing resume:", resumeFile.name)
+        resumeBase64 = await fileToBase64(resumeFile)
+      }
+      
+      // Convert LinkedIn PDF to base64 if provided
+      if (linkedinFiles.length > 0) {
+        const linkedinFile = linkedinFiles[0]
+        console.log("Processing LinkedIn:", linkedinFile.name)
+        linkedinBase64 = await fileToBase64(linkedinFile)
+      }
+      
+      // Update soul data with base64 files (will be parsed server-side)
+      const allDocs = [
+        ...resumeFiles.map((f) => ({ name: f.name, type: "resume" as const })),
+        ...linkedinFiles.map((f) => ({ name: f.name, type: "linkedin" as const })),
+      ]
+      
+      updateSoulData({
+        githubUrl: githubUrl || undefined,
+        documents: allDocs,
+        // Store base64 for server-side parsing
+        resumeBase64: resumeBase64 || undefined,
+        linkedinBase64: linkedinBase64 || undefined,
+      } as Partial<SoulFileData>)
+      
+      onNext()
+    } catch (error: any) {
+      console.error("File processing error:", error)
+      setUploadError(error.message || "Failed to process files")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const isValid = resumeFiles.length > 0 || linkedinFiles.length > 0 || githubUrl
@@ -229,14 +277,29 @@ export function StepDocuments({ soulData, updateSoulData, onNext }: StepDocument
           </div>
         </div>
 
+        {uploadError && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {uploadError}
+          </div>
+        )}
+
         <div className="flex justify-end pt-6">
           <Button
             onClick={handleNext}
-            disabled={!isValid}
+            disabled={!isValid || isUploading}
             className="gap-2 bg-white text-black hover:bg-white/90 border-0 h-12 px-6"
           >
-            Continue
-            <ArrowRight className="w-4 h-4" />
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                Continue
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>
