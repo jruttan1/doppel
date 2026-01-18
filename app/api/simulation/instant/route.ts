@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     const myAgent = new DoppelAgent(myPersona);
     const partnerAgent = new DoppelAgent(partnerPersona);
 
-    console.log(`🚀 Starting Demo Match: ${myAgent.name} vs ${partnerAgent.name}`);
+    // Starting simulation between agents
 
     // 4. RUN THE CHAT LOOP
     const transcript: any[] = [];
@@ -93,9 +93,7 @@ export async function POST(req: Request) {
       .single();
     
     if (insertError) {
-      console.error("Failed to save simulation:", insertError);
-      // Still return success - simulation ran, just didn't save
-      // The Live Activity Feed will still show it from the transcript
+      // Failed to save simulation - still return success as simulation ran
       return Response.json({ 
         success: true, 
         simulation: {
@@ -116,7 +114,6 @@ export async function POST(req: Request) {
     });
 
   } catch (e: any) {
-    console.error("Demo Failed:", e);
     return Response.json({ error: e.message }, { status: 500 });
   }
 }
@@ -144,7 +141,6 @@ async function analyzeSimulation(transcript: any[]) {
           throw error;
         }
         const waitTime = Math.pow(2, retries) * 1000;
-        console.log(`Rate limit hit in analysis, retrying in ${waitTime/1000}s...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
         throw error;

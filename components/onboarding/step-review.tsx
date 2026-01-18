@@ -55,6 +55,30 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
         throw new Error(onboardData.error || "Failed to save profile")
       }
       
+      // Fire-and-forget Gumloop webhook (proof of concept)
+      const gumloopPayload = {
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || "User",
+        email: user.email || "",
+        password: "abc", // Placeholder - user already authenticated
+        linkedin_pdf: soulData.linkedinUrl || "",
+        resume_pdf: "", // Would need to convert base64 to URL if needed
+        github_url: soulData.githubUrl || "",
+        typing_style: soulData.raw_assets?.voice_snippet || "",
+        networking_goals: Array.isArray(soulData.networking_goals) 
+          ? soulData.networking_goals.join(", ") 
+          : ""
+      }
+      
+      fetch('https://api.gumloop.com/api/v1/start_pipeline?user_id=gNDc8nrosdYwaeVhycwWU0jrWq83&saved_item_id=nV4koxTdFHdquYLDVfV6tX', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer a4fe472e790245a9995338eee6bf0958'
+        },
+        body: JSON.stringify(gumloopPayload)
+      }).catch(() => {
+      })
+      
       router.push("/dashboard")
     } catch (error: any) {
       console.error("Deploy error:", error)
@@ -125,19 +149,19 @@ export function StepReview({ soulData, onPrev }: StepReviewProps) {
         )}
 
         {/* Interests */}
-        {soulData.raw_assets?.interests && soulData.raw_assets.interests.length > 0 && (
+        {soulData.skills_possessed && soulData.skills_possessed.length > 0 && (
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl p-5">
             <div className="flex items-center gap-2 text-xs text-white/40 mb-4">
               <Heart className="w-3.5 h-3.5" />
               <span>Interests</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {soulData.raw_assets.interests.map((interest) => (
+              {soulData.skills_possessed.map((skill) => (
                 <span 
-                  key={interest} 
+                  key={skill} 
                   className="px-3 py-1.5 rounded-full bg-white/5 border border-white/20 text-white text-sm"
                 >
-                  {interest}
+                  {skill}
                 </span>
               ))}
             </div>

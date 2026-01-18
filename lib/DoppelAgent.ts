@@ -37,45 +37,99 @@ export class DoppelAgent {
 
   async reply(lastMessage: string | null): Promise<string> {
     try {
-      // Build context from persona
+      // Extract all persona data
       const voiceSnippet = this.persona.raw_assets?.voice_snippet || '';
       const networkingGoals = this.persona.networking_goals || [];
       const skills = this.persona.skills_possessed || [];
+      const skillsDesired = this.persona.skills_desired || [];
       const interests = this.persona.raw_assets?.interests || [];
+      const experienceLog = this.persona.raw_assets?.experience_log || [];
+      const projectList = this.persona.raw_assets?.project_list || [];
       const tagline = this.persona.identity?.tagline || '';
       const location = this.persona.identity?.location || '';
 
-      // Build system prompt
-      const systemPrompt = `You are ${this.name}, a real person networking on Doppel. 
+      // Build comprehensive system prompt
+      const systemPrompt = `You are ${this.name}, a real person networking on Doppel. You are NOT an AI assistant - you are a real human being with your own personality, experiences, and communication style.
 
-ABOUT YOU:
-${tagline ? `Tagline: ${tagline}` : ''}
+=== YOUR IDENTITY ===
+${tagline ? `Professional Tagline: ${tagline}` : ''}
 ${location ? `Location: ${location}` : ''}
-${skills.length > 0 ? `Skills: ${skills.join(', ')}` : ''}
-${interests.length > 0 ? `Interests: ${interests.join(', ')}` : ''}
-${networkingGoals.length > 0 ? `Networking Goals: ${networkingGoals.join(', ')}` : ''}
 
-COMMUNICATION STYLE:
-${voiceSnippet ? `Your voice signature: "${voiceSnippet}"\n\nWrite naturally in this style. Match the tone, formality, and personality shown in your voice signature.` : 'Be authentic, friendly, and professional. Write naturally as yourself.'}
+=== YOUR BACKGROUND & EXPERIENCE ===
+${experienceLog.length > 0 ? `Work Experience:\n${experienceLog.map((exp, i) => `${i + 1}. ${exp}`).join('\n')}` : 'No specific work experience provided.'}
 
-INSTRUCTIONS:
-- Write a brief, natural message (1-3 sentences max)
-- Be authentic to your personality and communication style
-- If this is the first message, introduce yourself briefly and mention your networking goals
-- If responding, acknowledge what was said and continue the conversation naturally
-- Keep it conversational and human-like
-- If the conversation feels complete or you've achieved your goal, you can end with "[END_CONVERSATION]"
-- Don't be overly formal or robotic`;
+${projectList.length > 0 ? `Notable Projects:\n${projectList.map((proj, i) => `${i + 1}. ${proj}`).join('\n')}` : ''}
+
+=== YOUR SKILLS & INTERESTS ===
+${skills.length > 0 ? `Technical Skills: ${skills.join(', ')}` : ''}
+${interests.length > 0 ? `Personal/Professional Interests: ${interests.join(', ')}` : ''}
+${skillsDesired.length > 0 ? `Skills You're Looking For: ${skillsDesired.join(', ')}` : ''}
+
+=== YOUR NETWORKING GOALS ===
+${networkingGoals.length > 0 ? networkingGoals.map((goal, i) => `${i + 1}. ${goal}`).join('\n') : 'General networking and connection building.'}
+
+=== YOUR COMMUNICATION STYLE & PERSONALITY ===
+${voiceSnippet ? `Your authentic voice and personality: "${voiceSnippet}"
+
+CRITICAL: This voice snippet captures your REAL personality, communication style, tone, and how you naturally express yourself. You MUST:
+- Match the exact tone, formality level, and energy from this snippet
+- Use similar vocabulary, sentence structure, and phrasing patterns
+- Reflect the same personality traits (e.g., casual vs formal, technical vs accessible, enthusiastic vs reserved)
+- Write as if you wrote the voice snippet yourself - it IS your authentic voice` : 'Be authentic, friendly, and professional. Write naturally as yourself.'}
+
+=== CONVERSATION GUIDELINES ===
+1. **Be Genuinely Human**: Write like a real person, not a chatbot. Use natural language, occasional casual expressions, and authentic reactions.
+
+2. **Avoid Repetition**: 
+   - Never repeat the same phrase or idea twice in a conversation
+   - Vary your sentence structure and word choice
+   - Reference different aspects of your background, projects, or interests in each message
+   - If you mentioned something before, build on it or pivot to a new topic
+
+3. **Show Personality**: 
+   - Reference specific experiences from your work history when relevant
+   - Mention projects you've worked on if they relate to the conversation
+   - Share interests or perspectives that make you unique
+   - Use your voice snippet as a guide for how you naturally communicate
+
+4. **Message Length**: 
+   - Write 2-5 sentences (not just 1-2)
+   - Be substantive but conversational
+   - Don't cut off mid-thought - complete your sentences
+
+5. **Conversation Flow**:
+   - If this is the first message: Introduce yourself naturally, mention what you're working on or looking for, reference your background briefly
+   - If responding: Acknowledge what they said, add your own perspective or experience, ask a thoughtful question or share something relevant
+   - Build on previous messages - reference earlier parts of the conversation naturally
+   - If the conversation feels complete or you've achieved your goal, end with "[END_CONVERSATION]"
+
+6. **Be Specific**: 
+   - Instead of generic statements, reference specific technologies, companies, projects, or experiences
+   - Use concrete examples from your background when relevant
+   - Show genuine interest in what the other person is saying
+
+7. **Natural Variation**: 
+   - Each message should feel fresh and different
+   - Don't use the same opening phrases or structures
+   - Let the conversation evolve organically
+
+REMEMBER: You are ${this.name}, a real person. Write as yourself, using your authentic voice, experiences, and personality.`;
 
       // Add conversation history
       if (lastMessage) {
         this.conversationHistory.push({ role: 'user', parts: lastMessage });
       }
 
-      // Build prompt
+      // Build context-aware prompt
+      const conversationContext = this.conversationHistory.length > 0 
+        ? `\n\nCONVERSATION HISTORY:\n${this.conversationHistory.slice(-4).map((msg, i) => 
+            `${msg.role === 'user' ? 'Them' : 'You'}: ${msg.parts}`
+          ).join('\n')}`
+        : '';
+
       const prompt = lastMessage 
-        ? `The other person just said: "${lastMessage}"\n\nRespond naturally as ${this.name}.`
-        : `Start a conversation as ${this.name}. Introduce yourself briefly and mention what you're looking for.`;
+        ? `The other person just said: "${lastMessage}"${conversationContext}\n\nRespond naturally as ${this.name}. Be authentic, avoid repetition, and write a complete message (2-5 sentences) that feels genuinely human.`
+        : `Start a conversation as ${this.name}. Introduce yourself naturally, mention what you're working on or looking for, and reference your background. Write 2-5 sentences that feel authentic and human.${conversationContext}`;
 
       // Generate reply with retry logic for rate limits
       let result;
@@ -87,15 +141,17 @@ INSTRUCTIONS:
           result = await model.generateContent({
             contents: [
               { role: "user", parts: [{ text: systemPrompt }] },
-              ...this.conversationHistory.map(msg => ({
+              ...this.conversationHistory.slice(-6).map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'model',
                 parts: [{ text: msg.parts }]
               })),
               { role: "user", parts: [{ text: prompt }] }
             ],
             generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 200
+              temperature: 0.9,
+              maxOutputTokens: 500,
+              topP: 0.95,
+              topK: 40
             }
           });
           break; // Success, exit retry loop
@@ -107,7 +163,6 @@ INSTRUCTIONS:
             }
             // Exponential backoff: wait 2^retries seconds (2s, 4s, 8s)
             const waitTime = Math.pow(2, retries) * 1000;
-            console.log(`Rate limit hit, retrying in ${waitTime/1000}s... (attempt ${retries}/${maxRetries})`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
           } else {
             throw error; // Not a rate limit error, throw immediately
@@ -117,14 +172,25 @@ INSTRUCTIONS:
 
       const reply = result!.response.text().trim();
       
+      // Ensure message isn't cut off - check for incomplete sentences
+      let finalReply = reply;
+      if (reply && !reply.match(/[.!?]$/) && !reply.includes('[END_CONVERSATION]')) {
+        // If message doesn't end with punctuation, it might be cut off
+        // Try to complete it or use as-is if it's a natural break
+        const sentences = reply.split(/[.!?]/).filter(s => s.trim());
+        if (sentences.length > 0) {
+          finalReply = sentences.join('.') + '.';
+        }
+      }
+      
       // Add reply to history
-      this.conversationHistory.push({ role: 'model', parts: reply });
+      this.conversationHistory.push({ role: 'model', parts: finalReply });
 
-      return reply;
+      return finalReply;
 
     } catch (error: any) {
-      console.error(`Error generating reply for ${this.name}:`, error);
-      return `Hi! I'm ${this.name}. Nice to meet you!`;
+      // Error handling - return a fallback message
+      return `Hi! I'm ${this.name}. ${this.persona.identity?.tagline || 'Nice to meet you!'}`;
     }
   }
 }
