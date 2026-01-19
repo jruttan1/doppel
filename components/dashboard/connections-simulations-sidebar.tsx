@@ -311,7 +311,7 @@ export function ConnectionsSimulationsSidebar() {
                 Connections ({connections.length})
               </TabsTrigger>
               <TabsTrigger value="simulations" className="flex-1 text-xs">
-                Simulations ({simulations.length})
+                All Simulations ({simulations.length})
               </TabsTrigger>
             </TabsList>
           </div>
