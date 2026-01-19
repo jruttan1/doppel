@@ -112,31 +112,56 @@ export function ConnectionsSimulationsSidebar() {
           setCurrentUserName(currentUser.name)
         }
 
-        // Fetch all simulations
-        const { data: simsData, error: simError } = await supabase
+        // Fetch all simulations (both directions - user as participant1 OR participant2)
+        const { data: sims1, error: error1 } = await supabase
           .from('simulations')
-          .select('id, participant2, score, transcript')
+          .select('id, participant1, participant2, score, transcript')
           .eq('participant1', user.id)
           .order('score', { ascending: false, nullsFirst: false })
           .limit(50)
 
+        const { data: sims2, error: error2 } = await supabase
+          .from('simulations')
+          .select('id, participant1, participant2, score, transcript')
+          .eq('participant2', user.id)
+          .order('score', { ascending: false, nullsFirst: false })
+          .limit(50)
+
+        const simError = error1 || error2
         if (simError) {
           console.error("Error fetching simulations:", simError)
           console.error("Error details:", JSON.stringify(simError, null, 2))
-          // Silently fail - user might not have any simulations yet
           setConnections([])
           setSimulations([])
+          setSimulationsLoaded(true)
           return
         }
 
-        if (!simsData || simsData.length === 0) {
+        // Normalize: always extract the "other" participant as partnerId
+        const normalizedSims = [
+          ...(sims1 || []).map(s => ({ ...s, partnerId: s.participant2 })),
+          ...(sims2 || []).map(s => ({ ...s, partnerId: s.participant1 }))
+        ]
+
+        // Deduplicate by partner ID - keep the highest score simulation for each partner
+        const seenPartners = new Set<string>()
+        const simsData = normalizedSims
+          .sort((a, b) => (b.score || 0) - (a.score || 0))
+          .filter(s => {
+            if (seenPartners.has(s.partnerId)) return false
+            seenPartners.add(s.partnerId)
+            return true
+          })
+
+        if (simsData.length === 0) {
           setConnections([])
           setSimulations([])
+          setSimulationsLoaded(true)
           return
         }
 
         // Fetch user details
-        const userIds = [...new Set(simsData.map(s => s.participant2))]
+        const userIds = [...new Set(simsData.map(s => s.partnerId))]
         const { data: users, error: usersError } = await supabase
           .from('users')
           .select('id, name, tagline, persona')
@@ -153,7 +178,7 @@ export function ConnectionsSimulationsSidebar() {
         const connectionsList: ConnectionPreview[] = simsData
           .filter(s => s.score && s.score >= 70)
           .map((sim) => {
-            const user = userMap.get(sim.participant2)
+            const user = userMap.get(sim.partnerId)
             const persona = user?.persona as any
             const identity = persona?.identity || {}
             const tagline = user?.tagline || ""
@@ -172,7 +197,7 @@ export function ConnectionsSimulationsSidebar() {
             const matchedAt = "Just now"
 
             return {
-              id: user?.id || sim.participant2,
+              id: user?.id || sim.partnerId,
               name: user?.name || "Unknown",
               role: roleText,
               avatar: "",
@@ -186,7 +211,7 @@ export function ConnectionsSimulationsSidebar() {
 
         // Build simulations list
         const simulationsList: Simulation[] = simsData.map((sim) => {
-          const user = userMap.get(sim.participant2)
+          const user = userMap.get(sim.partnerId)
           const persona = user?.persona as any
           const identity = persona?.identity || {}
           const tagline = user?.tagline || ""
