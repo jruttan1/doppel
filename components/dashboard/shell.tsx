@@ -21,10 +21,8 @@ import {
   LogOut,
   Menu,
   X,
-  Search,
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
-import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
 import { ConnectionsSimulationsSidebar } from "./connections-simulations-sidebar"
 
@@ -199,11 +197,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <main 
         className="pt-14 lg:pt-0 lg:pl-96 h-screen flex flex-col overflow-hidden min-w-0"
       >
-        <div className="hidden lg:flex items-center justify-between px-6 h-12 border-b border-border bg-card/50 backdrop-blur-sm shrink-0 z-20">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search connections, simulations..." className="pl-9 w-80 bg-secondary/50 border-0" />
-          </div>
+        <div className="hidden lg:flex items-center justify-end px-6 h-12 border-b border-border bg-card/50 backdrop-blur-sm shrink-0 z-20">
           <div className="flex items-center gap-4">
             <DropdownMenu open={desktopMenuOpen} onOpenChange={setDesktopMenuOpen}>
               <DropdownMenuTrigger asChild>

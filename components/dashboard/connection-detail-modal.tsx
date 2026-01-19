@@ -276,8 +276,8 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
         }
       }}
     >
-      <DialogContent className="max-w-lg bg-card border-border shadow-lg h-[90vh] max-h-[90vh] sm:h-auto sm:max-h-[90vh] sm:max-w-lg flex flex-col p-0 sm:p-6 rounded-lg z-[100]">
-        <div className="flex-1 overflow-y-auto px-4 pr-12 sm:pr-4 sm:px-0 pb-4 sm:pb-0">
+      <DialogContent className="max-w-lg bg-card border-border shadow-lg h-[calc(100vh-3.5rem)] w-full max-h-[calc(100vh-3.5rem)] mt-14 sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg sm:mt-0 flex flex-col p-0 sm:p-6 rounded-lg !fixed !top-14 !left-0 !right-0 !bottom-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] !z-[60] overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-0 pb-4 sm:pb-0 min-w-0">
           <DialogHeader className="pt-6 sm:pt-0">
             <div className="flex items-start gap-4">
               <div className="relative">
@@ -309,32 +309,32 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
 
           <div className="space-y-6 mt-4">
           {/* Compatibility Breakdown */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />
               Compatibility Breakdown
             </h4>
-            <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Relevance</span>
-                  <span>{scores.relevance}%</span>
+            <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 min-w-0">
+              <div className="space-y-1 min-w-0">
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground shrink-0">Relevance</span>
+                  <span className="shrink-0">{scores.relevance}%</span>
                 </div>
-                <Progress value={scores.relevance} className="h-2" />
+                <Progress value={scores.relevance} className="h-2 w-full" />
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Reciprocity</span>
-                  <span>{scores.reciprocity}%</span>
+              <div className="space-y-1 min-w-0">
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground shrink-0">Reciprocity</span>
+                  <span className="shrink-0">{scores.reciprocity}%</span>
                 </div>
-                <Progress value={scores.reciprocity} className="h-2" />
+                <Progress value={scores.reciprocity} className="h-2 w-full" />
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tone Match</span>
-                  <span>{scores.toneMatch}%</span>
+              <div className="space-y-1 min-w-0">
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground shrink-0">Tone Match</span>
+                  <span className="shrink-0">{scores.toneMatch}%</span>
                 </div>
-                <Progress value={scores.toneMatch} className="h-2" />
+                <Progress value={scores.toneMatch} className="h-2 w-full" />
               </div>
             </div>
           </div>
@@ -372,19 +372,19 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
               {coffeeChatSent}
             </div>
           )}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 min-w-0 w-full">
             <Button 
-              className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground min-w-0 shrink-0"
               onClick={handleBookCoffeeChat}
               disabled={sendingCoffeeChat || coffeeChatSent?.includes("sent")}
             >
-              <Calendar className="w-4 h-4" />
-              {sendingCoffeeChat ? "Sending..." : coffeeChatSent?.includes("sent") ? "Invitation Sent!" : "Book Coffee Chat"}
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span className="truncate">{sendingCoffeeChat ? "Sending..." : coffeeChatSent?.includes("sent") ? "Invitation Sent!" : "Book Coffee Chat"}</span>
             </Button>
             <Button 
               type="button"
               variant="outline" 
-              className="flex-1 gap-2 bg-transparent"
+              className="flex-1 gap-2 bg-transparent min-w-0 shrink-0"
               onClick={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -392,8 +392,8 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
               }}
               disabled={isLoading}
             >
-              <MessageCircle className="w-4 h-4" />
-              {isLoading ? "Loading..." : "View Simulation"}
+              <MessageCircle className="w-4 h-4 shrink-0" />
+              <span className="truncate">{isLoading ? "Loading..." : "View Simulation"}</span>
             </Button>
           </div>
 

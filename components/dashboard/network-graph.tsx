@@ -892,10 +892,10 @@ export function NetworkGraph() {
 
       {/* Node detail dialog */}
       <Dialog open={!!selectedNode} onOpenChange={() => { setSelectedNode(null); setCoffeeChatSent(null); }}>
-        <DialogContent className="max-w-lg bg-card border-border shadow-lg rounded-[4px] h-full w-full max-h-full sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg flex flex-col p-0 sm:p-6 fixed inset-0 sm:inset-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] rounded-none sm:rounded-[4px]">
+        <DialogContent className="max-w-lg bg-card border-border shadow-lg rounded-[4px] h-[calc(100vh-3.5rem)] w-full max-h-[calc(100vh-3.5rem)] mt-14 sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg sm:mt-0 flex flex-col p-0 sm:p-6 !fixed !top-14 !left-0 !right-0 !bottom-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] rounded-none sm:rounded-[4px] overflow-hidden !z-[60]">
           {selectedNode && (
             <>
-              <div className="flex-1 overflow-y-auto px-4 pr-12 sm:pr-4 sm:px-0 pb-4 sm:pb-0">
+              <div className="flex-1 overflow-y-auto px-4 sm:px-0 pb-4 sm:pb-0 min-w-0">
                 <DialogHeader className="pt-6 sm:pt-0">
                   <div className="flex items-start gap-4">
                     <div className="relative">
@@ -948,53 +948,53 @@ export function NetworkGraph() {
                   </div>
 
                   {selectedNode.compatibility && selectedNode.id !== currentUserId && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 min-w-0">
                       <h4 className="text-sm font-medium">Compatibility Breakdown</h4>
-                      <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Relevance</span>
-                            <span>{Math.round(selectedNode.compatibility * 0.98)}%</span>
+                      <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 min-w-0">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex justify-between text-sm gap-2">
+                            <span className="text-muted-foreground shrink-0">Relevance</span>
+                            <span className="shrink-0">{Math.round(selectedNode.compatibility * 0.98)}%</span>
                           </div>
-                          <Progress value={selectedNode.compatibility * 0.98} className="h-2" />
+                          <Progress value={selectedNode.compatibility * 0.98} className="h-2 w-full" />
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Reciprocity</span>
-                            <span>{Math.round(selectedNode.compatibility * 0.92)}%</span>
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex justify-between text-sm gap-2">
+                            <span className="text-muted-foreground shrink-0">Reciprocity</span>
+                            <span className="shrink-0">{Math.round(selectedNode.compatibility * 0.92)}%</span>
                           </div>
-                          <Progress value={selectedNode.compatibility * 0.92} className="h-2" />
+                          <Progress value={selectedNode.compatibility * 0.92} className="h-2 w-full" />
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Tone Match</span>
-                            <span>{Math.round(selectedNode.compatibility * 1.02)}%</span>
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex justify-between text-sm gap-2">
+                            <span className="text-muted-foreground shrink-0">Tone Match</span>
+                            <span className="shrink-0">{Math.round(selectedNode.compatibility * 1.02)}%</span>
                           </div>
-                          <Progress value={Math.min(selectedNode.compatibility * 1.02, 100)} className="h-2" />
+                          <Progress value={Math.min(selectedNode.compatibility * 1.02, 100)} className="h-2 w-full" />
                         </div>
                       </div>
                     </div>
                   )}
 
                   {selectedNode.id !== currentUserId && (
-                    <div className="space-y-3 pt-2 pb-4 sm:pb-0">
+                    <div className="space-y-3 pt-2 pb-4 sm:pb-0 min-w-0">
                       {coffeeChatSent && (
                         <div className={`p-3 rounded-lg text-sm ${coffeeChatSent.includes("Failed") ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}`}>
                           {coffeeChatSent}
                         </div>
                       )}
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex flex-col sm:flex-row gap-3 w-full min-w-0">
                         <Button 
-                          className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                          className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground min-w-0 shrink-0"
                           onClick={() => selectedNode.simulationId && handleBookCoffeeChat(selectedNode.simulationId)}
                           disabled={sendingCoffeeChat || coffeeChatSent?.includes("sent") || !selectedNode.simulationId}
                         >
-                          <Calendar className="w-4 h-4" />
-                          {sendingCoffeeChat ? "Sending..." : coffeeChatSent?.includes("sent") ? "Invitation Sent!" : "Book Coffee Chat"}
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{sendingCoffeeChat ? "Sending..." : coffeeChatSent?.includes("sent") ? "Invitation Sent!" : "Book Coffee Chat"}</span>
                         </Button>
-                        <Button variant="outline" className="flex-1 gap-2 bg-transparent">
-                          <MessageSquare className="w-4 h-4" />
-                          View Simulation
+                        <Button variant="outline" className="flex-1 gap-2 bg-transparent min-w-0 shrink-0">
+                          <MessageSquare className="w-4 h-4 shrink-0" />
+                          <span className="truncate">View Simulation</span>
                         </Button>
                       </div>
                     </div>
