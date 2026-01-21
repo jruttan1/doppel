@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const preNormalizedLinkedin = user.linkedin_normalized || null;
 
     // Use pre-normalized data if available, otherwise normalize from raw text
-    const [normalizedResume, normalizedLinkedin, githubData, xSummary] = await Promise.all([
+    const [normalizedResume, normalizedLinkedin, githubData] = await Promise.all([
       preNormalizedResume
         ? Promise.resolve(preNormalizedResume)
         : (resumeRawText ? normalizeResumeWithGemini(resumeRawText) : Promise.resolve(null)),
@@ -54,31 +54,19 @@ export async function POST(req: Request) {
         ? Promise.resolve(preNormalizedLinkedin)
         : (linkedinRawText ? normalizeLinkedinWithGemini(linkedinRawText) : Promise.resolve(null)),
       user.github_url ? fetchGitHubData(user.github_url) : Promise.resolve(null),
-      user.x_url ? fetchAndSummarizeX(user.x_url) : Promise.resolve(null)
     ]);
 
     console.log("Normalized Resume:", normalizedResume ? "✓" : "✗", preNormalizedResume ? "(pre-normalized)" : "(from raw text)");
     console.log("Normalized LinkedIn:", normalizedLinkedin ? "✓" : "✗", preNormalizedLinkedin ? "(pre-normalized)" : "(from raw text)");
     console.log("Github Data:", githubData ? "✓" : "✗");
-    console.log("X Summary:", xSummary ? "✓" : "✗");
-    
+
     // Validate we have at least some data to create a persona
-    if (!normalizedResume && !normalizedLinkedin && !githubData && !xSummary && !user.networking_goals?.length) {
+    if (!normalizedResume && !normalizedLinkedin && !githubData && !user.networking_goals?.length) {
       console.warn("⚠️ No data sources available for persona creation");
     }
 
     // prepare final synthesis
-    const { resume_text, linkedin_text, github_url, persona, x_summary: storedXSummary, ...userMetadata } = user;
-    
-    // Use stored x_summary from DB if available, otherwise use fresh xSummary
-    const xSummaryToUse = storedXSummary || xSummary;
-    
-    // Debug: Log X summary being used
-    if (xSummaryToUse) {
-      console.log("X Summary being used:", JSON.stringify(xSummaryToUse, null, 2));
-    } else {
-      console.log("⚠️ No X Summary available (neither stored nor fresh)");
-    }
+    const { resume_text, linkedin_text, github_url, persona, ...userMetadata } = user;
     
     // final gemini call - synthesize everything into persona
     const synthesisPrompt = `
@@ -101,9 +89,6 @@ ${normalizedLinkedin ? JSON.stringify(normalizedLinkedin, null, 2) : "Not provid
 **GitHub Repos:**
 ${githubData ? JSON.stringify(githubData, null, 2) : "Not provided"}
 
-**X/Twitter Analysis:**
-${xSummaryToUse ? JSON.stringify(xSummaryToUse, null, 2) : "Not provided"}
-
 GUIDELINES:
 - Resume/LinkedIn normalized data may have an "analysis" layer with pre-computed insights (seniority_level, primary_role, voice_tone, years_experience) - USE THESE
 - Resume/LinkedIn normalized data may have "identity" nested objects - extract name, location, linkedin_url from there
@@ -111,7 +96,6 @@ GUIDELINES:
 - Resume is the source of truth for work history, technical details, and verified skills
 - LinkedIn provides soft skills, endorsements, and professional "vibe"
 - GitHub validates technical skills - weight repos by stars and recency
-- X/Twitter analysis is CRITICAL for understanding authentic personality
 - User metadata contains their explicit networking goals - preserve these exactly
 - Merge duplicate information intelligently (don't repeat the same skill twice)
 
@@ -119,7 +103,7 @@ CRITICAL REQUIREMENTS:
 1. **experience_log MUST be populated** - Extract ALL work experience from Resume.experience and LinkedIn.experience arrays. Format each as: "Role @ Company (StartDate-EndDate) - Detailed description with key achievements, metrics, and impact."
 2. **voice_snippet MUST be ONLY the user's original voice_signature** - Use the exact text from userMetadata.voice_signature. Do NOT combine with X/Twitter analysis or add any other text.
 3. **project_list** - Include projects from Resume.projects (with tech_stack and metrics) AND GitHub repos formatted as: "Repo: name (Language) - Description with impact/stars if notable"
-4. **interests** - Combine from all sources: X/Twitter key_interests, LinkedIn about section, GitHub topics, user metadata interests
+4. **interests** - Combine from all sources: LinkedIn about section, GitHub topics, user metadata interests
 5. **Use the analysis layer** - If Resume or LinkedIn has analysis.seniority_level, analysis.primary_role, analysis.voice_tone - use these to inform the tagline and overall persona
 6. **skills_possessed** - Prioritize verified_hard_skills and verified_skills over all_keywords/all_skills
 
@@ -133,7 +117,7 @@ OUTPUT SCHEMA:
   "analysis": {
     "seniority_level": "Junior/Mid/Senior/Staff/Founder/Student - from Resume/LinkedIn analysis",
     "primary_role": "Main job function - from Resume/LinkedIn analysis",
-    "voice_tone": "Writing style - from Resume/LinkedIn analysis or X/Twitter",
+    "voice_tone": "Writing style - from Resume/LinkedIn analysis",
     "years_experience": "Number - from Resume/LinkedIn analysis"
   },
   "skills_possessed": ["Array of VERIFIED technical skills - prioritize verified_hard_skills/verified_skills"],
@@ -143,7 +127,7 @@ OUTPUT SCHEMA:
     "voice_snippet": "String - EXACTLY the user provided voice_signature from userMetadata, nothing else",
     "experience_log": ["Array - REQUIRED. Format: 'Role @ Company (Years) - Description with metrics and achievements'"],
     "project_list": ["Array - Include Resume projects with tech_stack/metrics AND GitHub repos"],
-    "interests": ["Array - REQUIRED. Combine from X/Twitter, LinkedIn, GitHub, and user metadata"]
+    "interests": ["Array - REQUIRED. Combine from LinkedIn, GitHub, and user metadata"]
   }
 }
 `;
@@ -199,11 +183,10 @@ OUTPUT SCHEMA:
     // save to db
     const { error: updateError, data: updateData } = await supabase
       .from('users')
-      .update({ 
+      .update({
         persona: finalPersona,
         tagline: tagline,
         skills: mergedSkills,
-        x_summary: xSummary || null,
         ingestion_status: 'complete'
       })
       .eq('id', id)
@@ -445,164 +428,6 @@ Preserve detail in experience descriptions. Include soft skills and leadership i
   } catch (e: any) {
     console.error("LinkedIn normalization error:", e.message);
     console.error("Response text:", e.response?.text?.() || "N/A");
-    return null;
-  }
-}
-
-// --- X/TWITTER (via Apify) ---
-
-const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN;
-const APIFY_ACTOR_ID = 'apidojo/tweet-scraper';
-
-async function fetchTweetsFromApify(username: string): Promise<string[] | null> {
-  if (!APIFY_API_TOKEN) {
-    console.error("Missing APIFY_API_TOKEN environment variable");
-    return null;
-  }
-
-  console.log(`[Apify] Starting tweet scraper for: ${username}`);
-
-  // 1. Start the actor run
-  const runResponse = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/runs?token=${APIFY_API_TOKEN}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        startUrls: [{ url: `https://x.com/${username}` }],
-        maxTweets: 50,
-        addUserInfo: false,
-      }),
-    }
-  );
-
-  if (!runResponse.ok) {
-    const errorText = await runResponse.text();
-    console.error(`[Apify] Failed to start actor: ${runResponse.status}`, errorText);
-    return null;
-  }
-
-  const runData = await runResponse.json();
-  const runId = runData.data?.id;
-  const datasetId = runData.data?.defaultDatasetId;
-
-  if (!runId) {
-    console.error("[Apify] No run ID returned:", runData);
-    return null;
-  }
-
-  console.log(`[Apify] Run started: ${runId}, dataset: ${datasetId}`);
-
-  // 2. Poll for completion (max 60 seconds)
-  for (let i = 0; i < 30; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-
-    const statusResponse = await fetch(
-      `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_API_TOKEN}`
-    );
-
-    if (!statusResponse.ok) {
-      console.log(`[Apify] Poll attempt ${i + 1}: Status ${statusResponse.status}`);
-      continue;
-    }
-
-    const statusData = await statusResponse.json();
-    const status = statusData.data?.status;
-
-    console.log(`[Apify] Poll attempt ${i + 1}: Status = ${status}`);
-
-    if (status === 'SUCCEEDED') {
-      // 3. Fetch results from dataset
-      const dataResponse = await fetch(
-        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_API_TOKEN}`
-      );
-
-      if (!dataResponse.ok) {
-        console.error("[Apify] Failed to fetch dataset items");
-        return null;
-      }
-
-      const items = await dataResponse.json();
-
-      // Extract tweet text from items
-      const tweets = items
-        .map((item: any) => item.full_text || item.text || item.tweet_text)
-        .filter((text: string | undefined) => text && text.trim());
-
-      console.log(`[Apify] Retrieved ${tweets.length} tweets`);
-      return tweets.length > 0 ? tweets : null;
-    }
-
-    if (status === 'FAILED' || status === 'ABORTED' || status === 'TIMED-OUT') {
-      console.error(`[Apify] Run failed with status: ${status}`);
-      return null;
-    }
-  }
-
-  console.error("[Apify] Polling timeout - run did not complete in 60 seconds");
-  return null;
-}
-
-async function fetchAndSummarizeX(xUrlOrUsername: string): Promise<any> {
-  try {
-    // Accept URL or plain username (with or without @)
-    const match = xUrlOrUsername.match(/(?:x\.com|twitter\.com)\/([^\/\?]+)/);
-    const username = (match ? match[1] : xUrlOrUsername).replace(/^@/, '').trim();
-
-    if (!username || username === 'home' || username === 'search') {
-      console.log("Invalid X username:", xUrlOrUsername);
-      return null;
-    }
-
-    console.log(`Fetching X data for: ${username}`);
-
-    // Fetch tweets using Apify
-    const tweets = await fetchTweetsFromApify(username);
-
-    if (!tweets || tweets.length === 0) {
-      console.log("No tweets retrieved for:", username);
-      return null;
-    }
-
-    const tweetCount = tweets.length;
-    console.log(`Got ${tweetCount} tweets, summarizing with Gemini...`);
-
-    // Summarize with Gemini
-    const summaryPrompt = `
-You are analyzing someone's Twitter/X presence to understand their authentic voice and personality.
-
-TWEETS (last ${tweetCount}):
-"""
-${tweets.join('\n---\n')}
-"""
-
-Analyze these tweets and return JSON with:
-{
-  "communication_style": "String - how they write (casual, technical, witty, thoughtful, etc.)",
-  "tone": "String - overall tone (friendly, sarcastic, professional, provocative, etc.)",
-  "key_interests": ["Array of topics they frequently discuss"],
-  "personality_traits": ["Array of personality traits evident from their tweets"],
-  "notable_opinions": ["Array of strong opinions or takes they've shared"],
-  "humor_style": "String or null - if they use humor, describe it",
-  "engagement_style": "String - how they interact (asks questions, shares links, hot takes, threads, etc.)",
-  "sample_voice": "String - write 1-2 sentences that capture how this person would naturally write/speak"
-}
-
-Focus on authentic voice signals. Ignore promotional content or retweets.
-`;
-
-    const result = await flashModel.generateContent(summaryPrompt);
-    const summary = JSON.parse(result.response.text());
-
-    return {
-      username,
-      tweet_count: tweetCount,
-      raw_tweets: tweets,
-      ...summary
-    };
-
-  } catch (e: any) {
-    console.error("X fetch/summarize error:", e.message, e.stack);
     return null;
   }
 }

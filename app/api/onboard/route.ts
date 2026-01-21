@@ -200,7 +200,6 @@ export async function POST(req: Request) {
       resumeBase64,
       linkedinBase64,
       githubUrl,
-      xUrl,
       networkingGoals,
       skillsDesired,
       locationDesired,
