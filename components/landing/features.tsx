@@ -47,7 +47,7 @@ export function Features() {
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-balance">Powerful Agent Infrastructure</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Built on LangGraph and Gumloop. Enterprise-grade agent orchestration for your professional network.
+            Built on LangGraph and Apify. Enterprise-grade agent orchestration for your professional network.
           </p>
         </div>
 

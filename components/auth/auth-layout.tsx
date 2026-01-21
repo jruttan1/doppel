@@ -23,7 +23,7 @@ export function AuthLayout({ children, title, description, ctaText }: AuthLayout
 
         <div className="relative flex flex-col justify-between p-12 z-[4]">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Doppel" width={48} height={48} />
+            <Image src="/logo.svg" alt="Doppel" width={40} height={40} />
             <span className="text-2xl font-bold font-mono text-white">Doppel</span>
           </Link>
 

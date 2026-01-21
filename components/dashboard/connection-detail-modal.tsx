@@ -38,6 +38,7 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
   const [currentUserName, setCurrentUserName] = useState<string>("You")
   const [sendingCoffeeChat, setSendingCoffeeChat] = useState(false)
   const [coffeeChatSent, setCoffeeChatSent] = useState<string | null>(null)
+  const [linkedinUrl, setLinkedinUrl] = useState<string | null>(null)
   const supabase = createClient()
 
   const handleBookCoffeeChat = async () => {
@@ -127,14 +128,26 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
       setTalkingPoints([])
       setShowChat(false)
       setCoffeeChatSent(null)
+      setLinkedinUrl(null)
       
-      // Find the simulation for this connection
+      // Find the simulation and connection's LinkedIn URL
       const findSimulation = async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser()
           if (!user) return
 
           console.log("Finding simulation for user:", user.id, "connection:", connection.id)
+
+          // Fetch the connection's LinkedIn URL
+          const { data: connectionUser } = await supabase
+            .from('users')
+            .select('linkedin_url')
+            .eq('id', connection.id)
+            .single()
+
+          if (connectionUser?.linkedin_url) {
+            setLinkedinUrl(connectionUser.linkedin_url)
+          }
 
           // Try to find simulation where current user is participant1
           let { data: sim, error } = await supabase
@@ -398,11 +411,24 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
           </div>
 
           <div className="flex items-center justify-center gap-4 pt-2 pb-4 sm:pb-0">
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-              <Linkedin className="w-4 h-4" />
-              LinkedIn
-              <ExternalLink className="w-3 h-3" />
-            </Button>
+            {linkedinUrl ? (
+              <a
+                href={linkedinUrl.startsWith('http') ? linkedinUrl : `https://${linkedinUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+                  <Linkedin className="w-4 h-4" />
+                  View LinkedIn
+                  <ExternalLink className="w-3 h-3" />
+                </Button>
+              </a>
+            ) : (
+              <Button variant="ghost" size="sm" className="text-muted-foreground/50 gap-2" disabled>
+                <Linkedin className="w-4 h-4" />
+                No LinkedIn
+              </Button>
+            )}
           </div>
 
           {/* Chat View */}

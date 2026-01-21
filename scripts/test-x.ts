@@ -15,8 +15,8 @@ if (!USERNAME) {
 }
 
 async function testX() {
-  console.log(`\n🧪 Testing Gumloop X/Twitter flow for: ${USERNAME}\n`);
-  
+  console.log(`\n🧪 Testing Apify X/Twitter flow for: ${USERNAME}\n`);
+
   const res = await fetch("http://localhost:3000/api/test-x", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,7 +24,7 @@ async function testX() {
   });
 
   const data = await res.json();
-  
+
   if (data.success) {
     console.log("✅ Test successful!\n");
     console.log("=".repeat(60));
@@ -37,26 +37,22 @@ async function testX() {
     } else {
       console.log(JSON.stringify(data.rawTweets, null, 2));
     }
-    
+
     console.log("\n" + "=".repeat(60));
     console.log("GEMINI SUMMARY:");
     console.log("=".repeat(60));
     console.log(JSON.stringify(data.summary, null, 2));
-    
+
     console.log("\n" + "=".repeat(60));
-    console.log("DEBUG INFO:");
+    console.log("INFO:");
     console.log("=".repeat(60));
-    console.log(`Run ID: ${data.runId}`);
-    console.log(`Poll attempts: ${data.attempts}`);
-    console.log(`Output keys: ${data.debug?.outputsKeys?.join(', ') || 'none'}`);
+    console.log(`Username: ${data.username}`);
+    console.log(`Tweet count: ${data.tweetCount}`);
   } else {
     console.log("❌ Test failed:");
     console.log(data.error);
-    if (data.details) {
-      console.log("\nDetails:", data.details);
-    }
-    if (data.finalStatus) {
-      console.log("\nFinal status:", JSON.stringify(data.finalStatus, null, 2));
+    if (data.username) {
+      console.log(`Username: ${data.username}`);
     }
   }
 }

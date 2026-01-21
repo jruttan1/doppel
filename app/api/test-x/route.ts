@@ -2,20 +2,107 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const flashModel = genAI.getGenerativeModel({ 
+const flashModel = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
   generationConfig: {
     responseMimeType: "application/json"
   }
 });
 
-const GUMLOOP_X_USER_ID = process.env.GUMLOOP_USER_ID || 'x847FlXvIMcKaILyaifOw8IUXAq1';
-const GUMLOOP_X_PIPELINE_ID = process.env.GUMLOOP_X_PIPELINE_ID || '7A4oBYUagQPbg8SnvDMaU4';
-// Extract just the API key (first 32 chars before & if present)
-const envApiKey = process.env.GUMLOOP_API_KEY?.split('&')[0]?.trim();
-const GUMLOOP_X_API_KEY = (envApiKey && envApiKey.length === 32) ? envApiKey : 'c082e29f8d254075930cfc27174dcf3d';
+// Apify configuration
+const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN;
+const APIFY_ACTOR_ID = 'apidojo/tweet-scraper';
 
 export const maxDuration = 60;
+
+async function fetchTweetsFromApify(username: string): Promise<string[] | null> {
+  if (!APIFY_API_TOKEN) {
+    console.error("Missing APIFY_API_TOKEN environment variable");
+    return null;
+  }
+
+  console.log(`[Apify] Starting tweet scraper for: ${username}`);
+
+  // 1. Start the actor run
+  const runResponse = await fetch(
+    `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/runs?token=${APIFY_API_TOKEN}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startUrls: [{ url: `https://x.com/${username}` }],
+        maxTweets: 50,
+        addUserInfo: false,
+      }),
+    }
+  );
+
+  if (!runResponse.ok) {
+    const errorText = await runResponse.text();
+    console.error(`[Apify] Failed to start actor: ${runResponse.status}`, errorText);
+    return null;
+  }
+
+  const runData = await runResponse.json();
+  const runId = runData.data?.id;
+  const datasetId = runData.data?.defaultDatasetId;
+
+  if (!runId) {
+    console.error("[Apify] No run ID returned:", runData);
+    return null;
+  }
+
+  console.log(`[Apify] Run started: ${runId}, dataset: ${datasetId}`);
+
+  // 2. Poll for completion (max 60 seconds)
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+
+    const statusResponse = await fetch(
+      `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_API_TOKEN}`
+    );
+
+    if (!statusResponse.ok) {
+      console.log(`[Apify] Poll attempt ${i + 1}: Status ${statusResponse.status}`);
+      continue;
+    }
+
+    const statusData = await statusResponse.json();
+    const status = statusData.data?.status;
+
+    console.log(`[Apify] Poll attempt ${i + 1}: Status = ${status}`);
+
+    if (status === 'SUCCEEDED') {
+      // 3. Fetch results from dataset
+      const dataResponse = await fetch(
+        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_API_TOKEN}`
+      );
+
+      if (!dataResponse.ok) {
+        console.error("[Apify] Failed to fetch dataset items");
+        return null;
+      }
+
+      const items = await dataResponse.json();
+
+      // Extract tweet text from items
+      const tweets = items
+        .map((item: any) => item.full_text || item.text || item.tweet_text)
+        .filter((text: string | undefined) => text && text.trim());
+
+      console.log(`[Apify] Retrieved ${tweets.length} tweets`);
+      return tweets.length > 0 ? tweets : null;
+    }
+
+    if (status === 'FAILED' || status === 'ABORTED' || status === 'TIMED-OUT') {
+      console.error(`[Apify] Run failed with status: ${status}`);
+      return null;
+    }
+  }
+
+  console.error("[Apify] Polling timeout - run did not complete in 60 seconds");
+  return null;
+}
 
 export async function POST(req: Request) {
   try {
@@ -28,149 +115,27 @@ export async function POST(req: Request) {
     // Clean username (remove @ and URL parts)
     const cleanUsername = username.replace(/^@/, '').replace(/^https?:\/\/(x\.com|twitter\.com)\//, '').split('/')[0].trim();
 
-    console.log(`Testing Gumloop for username: ${cleanUsername}`);
-    
-    const requestUrl = `https://api.gumloop.com/api/v1/start_pipeline?user_id=${GUMLOOP_X_USER_ID}&saved_item_id=${GUMLOOP_X_PIPELINE_ID}`;
-    
-    console.log(`Request URL: ${requestUrl}`);
+    console.log(`Testing Apify for username: ${cleanUsername}`);
 
-    // Step 1: POST to start pipeline (empty body as per user's example)
-    console.log("Step 1: Starting Gumloop pipeline...");
-    const gumloopRes = await fetch(requestUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GUMLOOP_X_API_KEY}`
-      },
-      body: JSON.stringify({})
-    });
+    // Fetch tweets from Apify
+    const tweets = await fetchTweetsFromApify(cleanUsername);
 
-    const responseText = await gumloopRes.text();
-    console.log(`Response status: ${gumloopRes.status}`);
-    console.log(`Response text: ${responseText.substring(0, 200)}`);
-
-    if (!gumloopRes.ok) {
-      let errorDetails;
-      try {
-        errorDetails = JSON.parse(responseText);
-      } catch {
-        errorDetails = responseText;
-      }
-      return NextResponse.json({ 
-        error: "Gumloop API error", 
-        status: gumloopRes.status,
-        statusText: gumloopRes.statusText,
-        details: errorDetails,
-        debug: {
-          requestUrl,
-          apiKeyLength: GUMLOOP_X_API_KEY.length,
-          apiKeyPrefix: GUMLOOP_X_API_KEY.substring(0, 10),
-          apiKeyFromEnv: !!process.env.GUMLOOP_API_KEY,
-          user_id: GUMLOOP_X_USER_ID,
-          saved_item_id: GUMLOOP_X_PIPELINE_ID,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GUMLOOP_X_API_KEY.substring(0, 10)}...`
-          }
-        }
-      }, { status: gumloopRes.status });
-    }
-
-    let gumloopData;
-    try {
-      gumloopData = JSON.parse(responseText);
-    } catch (e) {
+    if (!tweets || tweets.length === 0) {
       return NextResponse.json({
-        error: "Failed to parse Gumloop response",
-        responseText,
-        status: gumloopRes.status
-      }, { status: 500 });
-    }
-    const runId = gumloopData.run_id;
-
-    if (!runId) {
-      return NextResponse.json({ 
-        error: "No run_id from Gumloop",
-        gumloopResponse: gumloopData 
-      }, { status: 500 });
-    }
-
-    console.log(`Step 2: Got run_id: ${runId}, polling for results...`);
-
-    // Step 2: Poll for completion
-    let tweets: any = null;
-    let finalStatus: any = null;
-    let attempts = 0;
-    const maxAttempts = 30;
-
-    for (let i = 0; i < maxAttempts; i++) {
-      attempts = i + 1;
-      await new Promise(r => setTimeout(r, 2000));
-      
-      const statusRes = await fetch(
-        `https://api.gumloop.com/api/v1/get_pl_run?run_id=${runId}&user_id=${GUMLOOP_X_USER_ID}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${GUMLOOP_X_API_KEY}`
-          }
-        }
-      );
-
-      if (!statusRes.ok) {
-        console.log(`Poll attempt ${attempts}: Status ${statusRes.status}`);
-        continue;
-      }
-
-      const statusData = await statusRes.json();
-      finalStatus = statusData;
-      
-      console.log(`Poll attempt ${attempts}: State = ${statusData.state}`);
-      
-      if (statusData.state === 'DONE') {
-        // Extract tweets from outputs - check various possible keys
-        tweets = statusData.outputs?.tweets || 
-                 statusData.outputs?.output || 
-                 statusData.outputs?.data ||
-                 statusData.outputs;
-        
-        if (typeof tweets === 'string') {
-          tweets = tweets.split('\n').filter((t: string) => t.trim());
-        } else if (Array.isArray(tweets)) {
-          // Already an array
-        } else if (tweets && typeof tweets === 'object') {
-          // Try to extract array from object
-          tweets = Object.values(tweets).flat().filter((t: any) => typeof t === 'string' && t.trim());
-        }
-        break;
-      } else if (statusData.state === 'FAILED') {
-        return NextResponse.json({ 
-          error: "Gumloop pipeline failed",
-          status: statusData,
-          attempts 
-        }, { status: 500 });
-      }
-    }
-
-    if (!tweets || (Array.isArray(tweets) && tweets.length === 0)) {
-      return NextResponse.json({ 
         error: "No tweets retrieved",
-        finalStatus,
-        attempts,
-        outputs: finalStatus?.outputs
+        username: cleanUsername
       }, { status: 500 });
     }
 
-    const tweetCount = Array.isArray(tweets) ? tweets.length : 1;
-    console.log(`Step 3: Got ${tweetCount} tweets, summarizing with Gemini...`);
+    console.log(`Got ${tweets.length} tweets, summarizing with Gemini...`);
 
-    // Step 3: Summarize with Gemini
+    // Summarize with Gemini
     const summaryPrompt = `
 You are analyzing someone's Twitter/X presence to understand their authentic voice and personality.
 
-TWEETS (last 25):
+TWEETS (last ${tweets.length}):
 """
-${Array.isArray(tweets) ? tweets.join('\n---\n') : typeof tweets === 'string' ? tweets : JSON.stringify(tweets, null, 2)}
+${tweets.join('\n---\n')}
 """
 
 Analyze these tweets and return JSON with:
@@ -194,28 +159,21 @@ Focus on authentic voice signals. Ignore promotional content or retweets.
     return NextResponse.json({
       success: true,
       username: cleanUsername,
-      runId,
-      attempts,
+      tweetCount: tweets.length,
       rawTweets: tweets,
       summary: {
         username: cleanUsername,
-        tweet_count: tweetCount,
+        tweet_count: tweets.length,
         ...summary
-      },
-      debug: {
-        gumloopInitialResponse: gumloopData,
-        finalStatus: finalStatus?.state,
-        outputsKeys: finalStatus ? Object.keys(finalStatus.outputs || {}) : [],
-        outputs: finalStatus?.outputs
       }
     });
 
   } catch (error: any) {
     console.error("Test X error:", error);
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: error.message,
-      stack: error.stack 
+      stack: error.stack
     }, { status: 500 });
   }
 }
