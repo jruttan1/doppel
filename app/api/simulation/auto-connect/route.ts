@@ -3,6 +3,7 @@ import pLimit from 'p-limit';
 import {
   compileSimulationGraph,
   getCheckpointer,
+  DEFAULT_GRAPH_CONFIG,
   type SimulationStateType,
 } from '@/lib/graph/simulation';
 
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
     );
 
     if (usersToSimulate.length === 0) {
+      console.log('No new users to simulate with - all already have simulations');
       return Response.json({
         message: 'Already simulated with all available users',
         simulationsRun: 0,
@@ -80,95 +82,112 @@ export async function POST(req: Request) {
     }
 
     console.log(`Running ${usersToSimulate.length} new simulations...`);
+    console.log('Users to simulate:', usersToSimulate.map(u => u.name).join(', '));
 
     // 4. COMPILE GRAPH WITH CHECKPOINTER
+    console.log('Initializing checkpointer...');
     const checkpointer = await getCheckpointer();
+    console.log('Checkpointer ready, compiling graph...');
     const graph = compileSimulationGraph({ checkpointer });
 
-    // 5. RUN SIMULATIONS WITH CONCURRENCY LIMIT
-    const limit = pLimit(5); // Max 5 concurrent simulations to avoid rate limits
-
+    // 5. RUN SIMULATIONS SEQUENTIALLY (one at a time for better UX)
     const myPersona = {
       id: me.id,
       name: me.name || 'User',
       ...me.persona,
     };
 
-    const results = await Promise.all(
-      usersToSimulate.map((partner) =>
-        limit(async () => {
-          try {
-            // Pre-create simulation row
-            const { data: sim, error: insertError } = await supabase
-              .from('simulations')
-              .insert({
-                participant1: me.id,
-                participant2: partner.id,
-                transcript: [],
-              })
-              .select('id')
-              .single();
+    const results = [];
 
-            if (insertError || !sim) {
-              console.error(
-                `Failed to create simulation row for ${partner.id}:`,
-                insertError
-              );
-              return {
-                partnerId: partner.id,
-                partnerName: partner.name,
-                success: false,
-                error: insertError?.message || 'Failed to create simulation row',
-              };
-            }
+    // Run simulations one by one so the user can watch each conversation unfold
+    for (const partner of usersToSimulate) {
+      try {
+        // Pre-create simulation row with 'searching' status
+        const { data: sim, error: insertError } = await supabase
+          .from('simulations')
+          .insert({
+            participant1: me.id,
+            participant2: partner.id,
+            transcript: [],
+            status: 'running',
+          })
+          .select('id')
+          .single();
 
-            const partnerPersona = {
-              id: partner.id,
-              name: partner.name || 'Partner',
-              ...partner.persona,
-            };
+        if (insertError || !sim) {
+          console.error(
+            `Failed to create simulation row for ${partner.id}:`,
+            insertError
+          );
+          results.push({
+            partnerId: partner.id,
+            partnerName: partner.name,
+            success: false,
+            error: insertError?.message || 'Failed to create simulation row',
+          });
+          continue;
+        }
 
-            // Prepare initial state
-            const initialState: Partial<SimulationStateType> = {
-              simulationId: sim.id,
-              agentA: {
-                id: me.id,
-                name: me.name || 'User',
-                persona: myPersona,
-              },
-              agentB: {
-                id: partner.id,
-                name: partner.name || 'Partner',
-                persona: partnerPersona,
-              },
-              maxTurns: 15,
-            };
+        console.log(`Starting conversation with ${partner.name}...`);
 
-            // Invoke graph - runs to completion, syncToDb updates DB after each turn
-            const finalState = await graph.invoke(initialState, {
-              configurable: { thread_id: sim.id },
-            });
+        const partnerPersona = {
+          id: partner.id,
+          name: partner.name || 'Partner',
+          ...partner.persona,
+        };
 
-            return {
-              partnerId: partner.id,
-              partnerName: partner.name,
-              success: !finalState.error,
-              score: finalState.analysis?.score,
-              simulationId: sim.id,
-              error: finalState.error || undefined,
-            };
-          } catch (error: any) {
-            console.error(`Simulation failed for ${partner.id}:`, error.message);
-            return {
-              partnerId: partner.id,
-              partnerName: partner.name,
-              success: false,
-              error: error.message,
-            };
-          }
-        })
-      )
-    );
+        // Prepare initial state
+        const initialState: Partial<SimulationStateType> = {
+          simulationId: sim.id,
+          agentA: {
+            id: me.id,
+            name: me.name || 'User',
+            persona: myPersona,
+          },
+          agentB: {
+            id: partner.id,
+            name: partner.name || 'Partner',
+            persona: partnerPersona,
+          },
+          maxTurns: 15,
+        };
+
+        // Invoke graph - runs to completion, syncToDb updates DB after each turn
+        const finalState = await graph.invoke(initialState, {
+          ...DEFAULT_GRAPH_CONFIG,
+          configurable: { thread_id: sim.id },
+        });
+
+        // Update status to completed
+        await supabase
+          .from('simulations')
+          .update({ status: 'completed' })
+          .eq('id', sim.id);
+
+        console.log(`Finished conversation with ${partner.name}: score=${finalState.analysis?.score}`);
+
+        results.push({
+          partnerId: partner.id,
+          partnerName: partner.name,
+          success: !finalState.error,
+          score: finalState.analysis?.score,
+          simulationId: sim.id,
+          error: finalState.error || undefined,
+        });
+
+        // Small delay between simulations for rate limiting
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      } catch (error: any) {
+        console.error(`Simulation failed for ${partner.id}:`, error.message);
+        results.push({
+          partnerId: partner.id,
+          partnerName: partner.name,
+          success: false,
+          error: error.message,
+        });
+      }
+    }
 
     const successful = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;

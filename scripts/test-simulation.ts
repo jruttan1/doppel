@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import { compileSimulationGraph } from '../lib/graph/simulation';
+import { compileSimulationGraph, DEFAULT_GRAPH_CONFIG } from '../lib/graph/simulation';
 import type { SimulationStateType } from '../lib/graph/simulation';
 import crypto from 'crypto'; // Native Node.js crypto for valid UUIDs
 
@@ -84,7 +84,7 @@ async function runRealTest() {
   console.log('─'.repeat(60));
 
   try {
-    const stream = await graph.stream(initialState);
+    const stream = await graph.stream(initialState, DEFAULT_GRAPH_CONFIG);
 
     for await (const event of stream) {
       for (const [nodeName, output] of Object.entries(event)) {

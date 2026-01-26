@@ -203,6 +203,7 @@ export async function POST(req: Request) {
       networkingGoals,
       skillsDesired,
       locationDesired,
+      voiceSignature,  // User's actual voice samples from onboarding
     } = await req.json();
 
     if (!userId) {
@@ -233,12 +234,18 @@ export async function POST(req: Request) {
       updatePayload.resume_normalized = unifiedProfile;
       updatePayload.linkedin_url = unifiedProfile.identity?.linkedin_url || null;
       updatePayload.skills = unifiedProfile.skills?.verified_hard_skills || [];
-      updatePayload.voice_signature = unifiedProfile.analysis?.voice_tone || "Neutral";
-      
+
       // If user didn't provide GitHub manually, try to find it in the PDF
       if (!githubUrl && unifiedProfile.identity?.github_url) {
         updatePayload.github_url = unifiedProfile.identity.github_url;
       }
+    }
+
+    // Use the user's actual voice samples if provided, otherwise fall back to PDF tone
+    if (voiceSignature && voiceSignature.length > 50) {
+      updatePayload.voice_signature = voiceSignature;
+    } else if (unifiedProfile?.analysis?.voice_tone) {
+      updatePayload.voice_signature = unifiedProfile.analysis.voice_tone;
     }
 
     const { error: updateError } = await supabase

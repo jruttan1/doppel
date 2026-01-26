@@ -1,7 +1,7 @@
 // Main exports for the simulation graph
 
 // Graph
-export { createSimulationGraph, compileSimulationGraph } from './graph';
+export { createSimulationGraph, compileSimulationGraph, DEFAULT_GRAPH_CONFIG } from './graph';
 export type { SimulationGraph } from './graph';
 
 // State

@@ -54,9 +54,14 @@ export function createSimulationGraph() {
 
 /**
  * Compile the simulation graph with optional checkpointer.
+ *
+ * Note: recursionLimit is set high because each "turn" involves multiple nodes:
+ * agentReply → syncToDb → checkTermination (×2 for both agents per turn)
+ * So 15 turns = ~90+ node executions
  */
 export function compileSimulationGraph(options?: {
   checkpointer?: BaseCheckpointSaver;
+  recursionLimit?: number;
 }) {
   const graph = createSimulationGraph();
 
@@ -64,6 +69,11 @@ export function compileSimulationGraph(options?: {
     checkpointer: options?.checkpointer,
   });
 }
+
+// Default config for graph invocation
+export const DEFAULT_GRAPH_CONFIG = {
+  recursionLimit: 150, // 15 turns × 2 agents × ~5 nodes per cycle
+};
 
 // Type for the compiled graph
 export type SimulationGraph = ReturnType<typeof compileSimulationGraph>;

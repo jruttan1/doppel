@@ -2,6 +2,7 @@ import { DashboardShell } from "@/components/dashboard/shell"
 import { NetworkGraph } from "@/components/dashboard/network-graph"
 import { ConnectionsList } from "@/components/dashboard/connections-list"
 import { AgentStatus } from "@/components/dashboard/agent-status"
+import { LiveSimulationPanel } from "@/components/dashboard/LiveSimulationPanel"
 
 export const metadata = {
   title: "Dashboard | Doppel",
@@ -30,10 +31,18 @@ export default async function DashboardPage() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden">
-          <div className="h-full flex flex-col">
-            <h2 className="text-xl font-medium mb-3">Network Map</h2>
-            <div className="flex-1 min-h-0">
-              <NetworkGraph />
+          <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Live Simulation Feed */}
+            <div className="min-h-[400px] lg:min-h-0">
+              <LiveSimulationPanel />
+            </div>
+
+            {/* Network Map */}
+            <div className="flex flex-col min-h-[400px] lg:min-h-0">
+              <h2 className="text-xl font-medium mb-3">Network Map</h2>
+              <div className="flex-1 min-h-0">
+                <NetworkGraph />
+              </div>
             </div>
           </div>
         </div>
