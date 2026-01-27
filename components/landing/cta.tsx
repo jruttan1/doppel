@@ -5,7 +5,7 @@ import { VantaBackground } from "./vanta-background"
 
 export function CTA() {
   return (
-    <section className="relative py-24 bg-background overflow-hidden min-h-[600px] flex items-center">
+    <section className="relative py-24 bg-background overflow-hidden min-h-[400px] sm:min-h-[600px] flex items-center">
       <VantaBackground fixed={false} />
       <div className="absolute inset-0 bg-black/40 z-[1]" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-[2] w-full">

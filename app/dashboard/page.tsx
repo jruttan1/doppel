@@ -1,6 +1,5 @@
 import { DashboardShell } from "@/components/dashboard/shell"
 import { NetworkGraph } from "@/components/dashboard/network-graph"
-import { ConnectionsList } from "@/components/dashboard/connections-list"
 import { AgentStatus } from "@/components/dashboard/agent-status"
 
 export const metadata = {

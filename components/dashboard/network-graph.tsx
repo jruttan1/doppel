@@ -713,19 +713,6 @@ export function NetworkGraph() {
     [filteredNodes, zoom, currentUserId],
   )
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!hoveredNode) return
-      
-      // Prevent selecting the current user's node
-      if (hoveredNode.id === currentUserId) return
-      
-      if (hoveredNode.status === "matched" || hoveredNode.status === "connected") {
-        setSelectedNode(hoveredNode)
-      }
-    },
-    [hoveredNode, currentUserId],
-  )
 
   // Mouse wheel zoom disabled
   const handleWheel = useCallback(
@@ -743,18 +730,52 @@ export function NetworkGraph() {
     setHoveredNode(null)
   }, [])
 
+  // Hit-test for node at client coords (used for touch tap-to-select when hover isn't available)
+  const getNodeAtPoint = useCallback(
+    (clientX: number, clientY: number): NetworkNode | null => {
+      const canvas = canvasRef.current
+      if (!canvas) return null
+      const rect = canvas.getBoundingClientRect()
+      const x = clientX - rect.left
+      const y = clientY - rect.top
+      const centerX = rect.width / 2
+      const centerY = rect.height / 2
+      const zoomVal = zoomRef.current
+      const adjustedX = (x - centerX) / zoomVal + centerX
+      const adjustedY = (y - centerY) / zoomVal + centerY
+      if (Math.hypot(adjustedX - centerX, adjustedY - centerY) < 30) return null
+      const node = filteredNodesRef.current.find((n) => {
+        if (n.id === currentUserId) return false
+        return Math.hypot(n.x - adjustedX, n.y - adjustedY) < 25
+      })
+      return node ?? null
+    },
+    [currentUserId],
+  )
+
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const node = hoveredNode ?? getNodeAtPoint(e.clientX, e.clientY)
+      if (!node || node.id === currentUserId) return
+      if (node.status === "matched" || node.status === "connected") {
+        setSelectedNode(node)
+      }
+    },
+    [hoveredNode, currentUserId, getNodeAtPoint],
+  )
+
   return (
     <>
       <Card className="bg-card border-border shadow-md h-full flex flex-col overflow-hidden relative">
-        <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-3 px-4 flex-shrink-0 h-auto">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <CardHeader className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-2 pb-1.5 pt-3 px-4 flex-shrink-0 h-auto">
+          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+            <div className="relative min-w-0 flex-1 sm:flex-initial" style={{ minWidth: 80 }}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-48 h-8 bg-secondary/50 text-xs"
+                className="pl-9 w-full min-w-0 sm:w-40 md:w-48 h-9 sm:h-8 bg-secondary/50 text-xs"
               />
             </div>
             <div className="relative z-10 pointer-events-auto">
@@ -764,24 +785,24 @@ export function NetworkGraph() {
                   setFilter(newFilter)
                 }
               }}>
-                <TabsList className="bg-secondary/50 pointer-events-auto h-8">
-                  <TabsTrigger value="all" className="text-[10px] px-2 h-7 pointer-events-auto">
+                <TabsList className="bg-secondary/50 pointer-events-auto h-9 sm:h-8 min-h-[44px] sm:min-h-0">
+                  <TabsTrigger value="all" className="text-[10px] sm:text-[10px] px-3 sm:px-2 h-9 sm:h-7 min-h-[44px] sm:min-h-0 pointer-events-auto">
                     All
                   </TabsTrigger>
-                  <TabsTrigger value="matched" className="text-[10px] px-2 h-7 pointer-events-auto">
+                  <TabsTrigger value="matched" className="text-[10px] sm:text-[10px] px-3 sm:px-2 h-9 sm:h-7 min-h-[44px] sm:min-h-0 pointer-events-auto">
                     Matches
                   </TabsTrigger>
-                  <TabsTrigger value="simulated" className="text-[10px] px-2 h-7 pointer-events-auto">
+                  <TabsTrigger value="simulated" className="text-[10px] sm:text-[10px] px-3 sm:px-2 h-9 sm:h-7 min-h-[44px] sm:min-h-0 pointer-events-auto">
                     Simulated
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
-            <div className="flex items-center gap-1 ml-2 relative z-10 pointer-events-auto">
+            <div className="flex items-center gap-1 sm:ml-2 relative z-10 pointer-events-auto">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 cursor-pointer pointer-events-auto"
+                className="h-11 w-11 sm:h-7 sm:w-7 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 cursor-pointer pointer-events-auto touch-manipulation"
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -790,13 +811,14 @@ export function NetworkGraph() {
                 }}
                 type="button"
                 disabled={false}
+                aria-label="Zoom in"
               >
-                <ZoomIn className="h-3.5 w-3.5" />
+                <ZoomIn className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 cursor-pointer pointer-events-auto"
+                className="h-11 w-11 sm:h-7 sm:w-7 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 cursor-pointer pointer-events-auto touch-manipulation"
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -805,13 +827,14 @@ export function NetworkGraph() {
                 }}
                 type="button"
                 disabled={false}
+                aria-label="Zoom out"
               >
-                <ZoomOut className="h-3.5 w-3.5" />
+                <ZoomOut className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               </Button>
             </div>
           </div>
           {/* Stats in header */}
-          <div className="glass px-2.5 py-1.5 rounded-lg">
+          <div className="glass px-2.5 py-1.5 rounded-lg shrink-0 self-start sm:self-auto">
             <div className="flex items-center gap-4 text-xs">
               <div>
                 <p className="text-muted-foreground text-[10px] leading-tight">Total Nodes</p>
@@ -830,12 +853,12 @@ export function NetworkGraph() {
           <div ref={containerRef} className="relative h-full w-full">
             <canvas
               ref={canvasRef}
-              className="w-full h-full cursor-crosshair"
+              className="w-full h-full cursor-crosshair touch-manipulation"
               onMouseMove={handleMouseMove}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onWheel={handleWheel}
-              onClick={handleClick}
+              onClick={handleCanvasClick}
             />
 
             {/* Legend */}
