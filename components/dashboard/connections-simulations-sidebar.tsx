@@ -316,9 +316,9 @@ export function ConnectionsSimulationsSidebar() {
             </TabsList>
           </div>
 
-          <TabsContent value="connections" className="flex-1 mt-0 overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="divide-y divide-border">
+          <TabsContent value="connections" className="flex-1 mt-0 overflow-hidden min-h-0">
+            <ScrollArea className="h-full min-h-0">
+              <div className="divide-y divide-border pb-4">
                 {matchedConnections.map((connection) => (
                   <button
                     key={connection.id}
@@ -346,15 +346,15 @@ export function ConnectionsSimulationsSidebar() {
                           <Sparkles className="w-1.5 h-1.5 text-white" />
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="font-medium text-xs truncate">{connection.name}</p>
-                          <Badge variant="outline" className="shrink-0 text-teal-500 border-teal-500/30 text-[10px] px-1">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <p className="font-medium text-xs truncate min-w-0">{connection.name}</p>
+                          <Badge variant="outline" className="shrink-0 text-teal-500 border-teal-500/30 text-[10px] px-1.5 py-0">
                             {connection.compatibility}%
                           </Badge>
                         </div>
-                        <p className="text-[10px] text-muted-foreground truncate">{connection.role}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{connection.icebreaker}</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-3 break-words">{connection.role}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-4 break-words">{connection.icebreaker}</p>
                       </div>
                     </div>
                   </button>
@@ -375,14 +375,14 @@ export function ConnectionsSimulationsSidebar() {
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="font-medium text-xs truncate">{connection.name}</p>
-                          <Badge variant="secondary" className="shrink-0 text-[10px] px-1">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <p className="font-medium text-xs truncate min-w-0">{connection.name}</p>
+                          <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
                             Connected
                           </Badge>
                         </div>
-                        <p className="text-[10px] text-muted-foreground truncate">{connection.role}</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2 break-words">{connection.role}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{connection.matchedAt}</p>
                       </div>
                     </div>
@@ -392,9 +392,9 @@ export function ConnectionsSimulationsSidebar() {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="simulations" className="flex-1 mt-0 overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="divide-y divide-border">
+          <TabsContent value="simulations" className="flex-1 mt-0 overflow-hidden min-h-0">
+            <ScrollArea className="h-full min-h-0">
+              <div className="divide-y divide-border pb-4">
                 {simulations.map((simulation) => (
                   <button
                     key={simulation.id}
@@ -422,15 +422,15 @@ export function ConnectionsSimulationsSidebar() {
                         </Avatar>
                         <div className="absolute -bottom-0.5 -right-0.5">{getStatusIcon(simulation.status)}</div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="font-medium text-xs truncate">{simulation.targetName}</p>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <p className="font-medium text-xs truncate min-w-0">{simulation.targetName}</p>
                           {getStatusBadge(simulation.status, simulation.score)}
                         </div>
-                        <p className="text-[10px] text-muted-foreground truncate">{simulation.targetRole}</p>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                        <p className="text-[10px] text-muted-foreground line-clamp-2 break-words">{simulation.targetRole}</p>
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-0.5">
-                            <MessageSquare className="w-2.5 h-2.5" />
+                            <MessageSquare className="w-2.5 h-2.5 shrink-0" />
                             {simulation.turns}
                           </span>
                           <span>{simulation.startedAt}</span>
@@ -539,18 +539,18 @@ export function ConnectionsSimulationsSidebar() {
         }}
         key={selectedSimulation?.id} // Force re-render when simulation changes
       >
-        <DialogContent className="max-w-3xl bg-card border-border shadow-lg h-[95vh] w-[95vw] max-h-[95vh] sm:h-[85vh] sm:max-h-[85vh] sm:w-auto sm:max-w-3xl flex flex-col p-0 rounded-lg z-[100]">
+        <DialogContent className="max-w-3xl bg-card border-border shadow-lg h-[95vh] w-[95vw] max-h-[95vh] sm:h-[85vh] sm:max-h-[85vh] sm:w-auto sm:max-w-3xl flex flex-col min-h-0 p-0 rounded-lg z-[100] overflow-hidden">
           {selectedSimulation ? (
             <>
               {/* Header */}
-              <div className="px-6 pt-6 pb-4 border-b border-border">
+              <div className="px-4 sm:px-6 pt-6 pb-4 border-b border-border shrink-0 min-w-0">
                 <DialogHeader>
                   <DialogTitle className="sr-only">Simulation Chat: {selectedSimulation.targetName}</DialogTitle>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-12 h-12 shrink-0">
-                          <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                      <div className="flex items-center gap-3 min-w-0 shrink-0">
+                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
+                          <AvatarFallback className="bg-primary/20 text-primary text-xs sm:text-sm font-semibold">
                             {currentUserName
                               .split(" ")
                               .map((n) => n[0])
@@ -559,34 +559,34 @@ export function ConnectionsSimulationsSidebar() {
                               .slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="text-sm font-semibold">Your Agent</p>
-                          <p className="text-xs text-muted-foreground">{currentUserName}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold truncate">Your Agent</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{currentUserName}</p>
                         </div>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-12 h-12">
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground shrink-0" />
+                      <div className="flex items-center gap-3 min-w-0 shrink-0">
+                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
                           <AvatarImage
                             src={
                               selectedSimulation.targetAvatar ||
                               "/placeholder.svg?height=48&width=48&query=professional headshot"
                             }
                           />
-                          <AvatarFallback className="text-sm">
+                          <AvatarFallback className="text-xs sm:text-sm">
                             {selectedSimulation.targetName
                               .split(" ")
                               .map((n) => n[0])
                               .join("")}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="text-sm font-semibold">{selectedSimulation.targetName}</p>
-                          <p className="text-xs text-muted-foreground">{selectedSimulation.targetRole}</p>
+                        <div className="min-w-0 overflow-hidden">
+                          <p className="text-xs sm:text-sm font-semibold truncate">{selectedSimulation.targetName}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{selectedSimulation.targetRole}</p>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       {getStatusBadge(selectedSimulation.status, selectedSimulation.score)}
                       <div className="text-xs text-muted-foreground">
                         {selectedSimulation.turns} messages
@@ -597,8 +597,8 @@ export function ConnectionsSimulationsSidebar() {
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                <ScrollArea className="h-full w-full px-6 py-4">
+              <div className="flex-1 overflow-hidden min-h-0 min-w-0">
+                <ScrollArea className="h-full w-full px-4 sm:px-6 py-4">
                   <div className="space-y-6">
                   {selectedSimulation.messages.map((msg, i) => {
                     const isMyAgent = msg.agent === "A"
@@ -689,7 +689,7 @@ export function ConnectionsSimulationsSidebar() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-border bg-secondary/30">
+              <div className="px-4 sm:px-6 py-4 border-t border-border bg-secondary/30 shrink-0">
                 {selectedSimulation.summary && (
                   <div className="mb-4 p-3 rounded-lg bg-background/50 border border-border">
                     <div className="flex items-center gap-2 mb-1">

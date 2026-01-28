@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogClose, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Calendar, MessageCircle, Linkedin, ExternalLink, Sparkles, Target, Users, MessageSquare, ArrowRight } from "lucide-react"
+import { Calendar, MessageCircle, Linkedin, ExternalLink, Sparkles, Target, Users, MessageSquare, ArrowRight, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
@@ -289,11 +289,14 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
         }
       }}
     >
-      <DialogContent className="max-w-lg bg-card border-border shadow-lg h-[calc(100vh-3.5rem)] w-full max-h-[calc(100vh-3.5rem)] mt-14 sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg sm:mt-0 flex flex-col p-0 sm:p-6 rounded-lg !fixed !top-14 !left-0 !right-0 !bottom-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] !z-[60] overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 sm:px-0 pb-4 sm:pb-0 min-w-0">
-          <DialogHeader className="pt-6 sm:pt-0">
-            <div className="flex items-start gap-4">
-              <div className="relative">
+      <DialogContent showCloseButton={false} className="max-w-lg bg-card border-border shadow-lg h-[calc(100vh-3.5rem)] w-full max-h-[calc(100vh-3.5rem)] mt-14 sm:h-auto sm:max-h-[90vh] sm:w-auto sm:max-w-lg sm:mt-0 flex flex-col min-h-0 p-0 sm:p-6 rounded-lg !fixed !top-14 !left-0 !right-0 !bottom-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] !translate-x-0 !translate-y-0 sm:!translate-x-[-50%] sm:!translate-y-[-50%] !z-[60] overflow-hidden">
+        <DialogClose className="absolute top-4 right-12 sm:right-4 z-[70] rounded-sm opacity-70 hover:opacity-100 transition-opacity p-2 ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 size-8 flex items-center justify-center" aria-label="Close">
+          <X className="size-4" />
+        </DialogClose>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pr-12 sm:px-0 sm:pr-6 pb-4 sm:pb-0 min-w-0" style={{ scrollbarGutter: "stable" }}>
+          <DialogHeader className="pt-6 sm:pt-0 shrink-0">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="relative shrink-0">
                 <Avatar className="w-16 h-16">
                   <AvatarImage src={connection.avatar || "/placeholder.svg"} />
                   <AvatarFallback className="text-lg">
@@ -307,14 +310,14 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
                   <Sparkles className="w-3 h-3 text-white" />
                 </div>
               </div>
-              <div className="flex-1">
-                <DialogTitle className="text-xl">{connection.name}</DialogTitle>
-                <DialogDescription className="text-sm">{connection.role}</DialogDescription>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="bg-teal-500/10 text-teal-500 hover:bg-teal-500/20">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <DialogTitle className="text-xl truncate">{connection.name}</DialogTitle>
+                <DialogDescription className="text-sm truncate">{connection.role}</DialogDescription>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <Badge className="bg-teal-500/10 text-teal-500 hover:bg-teal-500/20 shrink-0">
                     {connection.compatibility}% Match
                   </Badge>
-                  <span className="text-xs text-muted-foreground">{connection.matchedAt}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{connection.matchedAt}</span>
                 </div>
               </div>
             </div>
@@ -353,12 +356,12 @@ export function ConnectionDetailModal({ connection, onClose, onViewSimulation }:
           </div>
 
           {/* Icebreaker */}
-          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 min-w-0">
             <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
-              <MessageSquare className="w-4 h-4 text-primary" />
+              <MessageSquare className="w-4 h-4 text-primary shrink-0" />
               Your Icebreaker
             </h4>
-            <p className="text-sm text-muted-foreground">{connection.icebreaker}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{connection.icebreaker}</p>
           </div>
 
           {/* Talking Points */}

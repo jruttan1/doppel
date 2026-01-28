@@ -1,6 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 
 export function LandingNav() {
   return (
@@ -12,7 +16,8 @@ export function LandingNav() {
             <span className="text-xl font-bold tracking-tight font-serif">Doppel</span>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* Desktop: inline links */}
+          <div className="hidden md:flex items-center gap-2 sm:gap-4">
             <Link href="/auth/login">
               <Button variant="ghost" size="sm">
                 Sign In
@@ -23,6 +28,31 @@ export function LandingNav() {
                 Get Started
               </Button>
             </Link>
+          </div>
+
+          {/* Mobile: hamburger + sheet */}
+          <div className="flex md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px]" aria-label="Open menu">
+                  <Menu className="w-6 h-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[min(100vw-2rem,320px)]">
+                <div className="flex flex-col gap-4 pt-8">
+                  <Link href="/auth/login" className="w-full">
+                    <Button variant="ghost" size="lg" className="w-full justify-start">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup" className="w-full">
+                    <Button size="lg" className="w-full">
+                      Get Started
+                    </Button>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
