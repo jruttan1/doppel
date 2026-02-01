@@ -4,13 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Play, Pause, Radio, CheckCircle2, Loader2, Zap } from "lucide-react"
+import { Play, Pause, Radio, CheckCircle2, Loader2, Zap, Search } from "lucide-react"
 import { AgentFeed } from "./agent-feed"
 import { createClient } from "@/lib/supabase/client"
 
 type Phase = "idle" | "finding_target" | "watching" | "cooldown" | "done"
 
 const COOLDOWN_DELAY = 3000
+const SCAN_DELAY = 2500 // minimum "scanning" duration for UX
 
 export function Orchestrator() {
   const [isActive, setIsActive] = useState(false)
@@ -55,13 +56,16 @@ export function Orchestrator() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const res = await fetch("/api/simulation/auto-connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      })
-
-      const data = await res.json()
+      // Hollywood delay: ensure the "Scanning Network..." state
+      // is visible for at least SCAN_DELAY ms, even if API is fast
+      const [data] = await Promise.all([
+        fetch("/api/simulation/auto-connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id }),
+        }).then((r) => r.json()),
+        new Promise((resolve) => setTimeout(resolve, SCAN_DELAY)),
+      ])
 
       if (!isMountedRef.current || !isActiveRef.current) return
 
@@ -71,7 +75,6 @@ export function Orchestrator() {
       }
 
       if (data.error) {
-        // Retry after a delay on error
         setTimeout(() => {
           if (isMountedRef.current && isActiveRef.current) {
             findAndStart()
@@ -134,108 +137,119 @@ export function Orchestrator() {
   const handleToggle = () => {
     if (isActive) {
       setIsActive(false)
-      // Let current simulation finish, but don't start next
     } else {
       setIsActive(true)
-      setPhase("idle") // triggers the loop via the useEffect above
+      setPhase("idle")
     }
   }
 
   const phaseLabel = () => {
     switch (phase) {
       case "finding_target":
-        return "Scanning for next connection..."
+        return "Scanning network for next connection..."
       case "watching":
-        return `Simulating conversation with ${currentPartnerName}`
+        return `Agent is talking with ${currentPartnerName}`
       case "cooldown":
         return lastScore !== null
-          ? `Scored ${lastScore}%${lastScore >= 70 ? " — Match!" : ""}`
+          ? `Scored ${lastScore}%${lastScore >= 70 ? " — Match found!" : ""}`
           : "Processing..."
       case "done":
         return "All available connections explored"
       case "idle":
       default:
-        return isActive ? "Starting..." : "Paused"
+        return isActive ? "Starting..." : "Ready to connect"
     }
   }
 
   return (
-    <Card className="bg-card border-border overflow-hidden shadow-md">
-      <CardContent className="p-4 sm:p-6">
+    <Card className="bg-card border-border overflow-hidden shadow-md h-full flex flex-col">
+      <CardContent className="p-4 flex flex-col h-full min-h-0">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 flex-shrink-0 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             {phase === "watching" ? (
               <Radio className="w-4 h-4 text-teal-500 animate-pulse shrink-0" />
             ) : phase === "finding_target" ? (
-              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin shrink-0" />
+              <Search className="w-4 h-4 text-blue-400 animate-pulse shrink-0" />
             ) : phase === "done" ? (
               <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" />
             ) : (
               <Zap className="w-4 h-4 text-muted-foreground shrink-0" />
             )}
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-sm">Auto-Connect</h3>
                 {isActive && phase !== "done" && (
                   <Badge className="bg-teal-500/10 text-teal-500 text-[10px]">Active</Badge>
                 )}
+                {completedCount > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {completedCount} done
+                  </Badge>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">{phaseLabel()}</p>
+              <p className="text-xs text-muted-foreground truncate">{phaseLabel()}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {completedCount > 0 && (
-              <Badge variant="secondary" className="text-[10px]">
-                {completedCount} done
-              </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggle}
+            disabled={phase === "done"}
+            className="gap-1.5 shrink-0 bg-secondary/50 hover:bg-secondary border-border/50 text-foreground hover:text-foreground"
+          >
+            {isActive ? (
+              <>
+                <Pause className="w-3.5 h-3.5" />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5" />
+                Start
+              </>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleToggle}
-              disabled={phase === "done"}
-              className="gap-1.5 bg-secondary/50 hover:bg-secondary border-border/50 text-foreground hover:text-foreground"
-            >
-              {isActive ? (
-                <>
-                  <Pause className="w-3.5 h-3.5" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5" />
-                  Start
-                </>
-              )}
-            </Button>
-          </div>
+          </Button>
         </div>
 
         {/* Live feed */}
         {currentSimId && (phase === "watching" || phase === "cooldown") && (
-          <AgentFeed
-            simulationId={currentSimId}
-            partnerName={currentPartnerName || "Unknown"}
-            currentUserName={currentUserName}
-            onComplete={handleSimulationComplete}
-          />
-        )}
-
-        {/* Empty states */}
-        {phase === "idle" && !isActive && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Zap className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Press Start to begin auto-connecting</p>
+          <div className="flex-1 min-h-0">
+            <AgentFeed
+              simulationId={currentSimId}
+              partnerName={currentPartnerName || "Unknown"}
+              currentUserName={currentUserName}
+              onComplete={handleSimulationComplete}
+            />
           </div>
         )}
 
+        {/* Scanning animation */}
+        {phase === "finding_target" && (
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            <div className="text-center">
+              <p className="text-xs font-medium">Browsing nodes...</p>
+              <p className="text-[10px] mt-0.5 opacity-60">Looking for compatible connections</p>
+            </div>
+          </div>
+        )}
+
+        {/* Idle state */}
+        {phase === "idle" && !isActive && (
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-muted-foreground">
+            <Zap className="w-6 h-6 mb-2 opacity-20" />
+            <p className="text-xs">Press Start to begin auto-connecting</p>
+          </div>
+        )}
+
+        {/* Done state */}
         {phase === "done" && (
-          <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-teal-500 opacity-60" />
-            <p className="text-sm">All connections explored</p>
-            <p className="text-xs mt-1">{completedCount} simulations completed</p>
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-muted-foreground">
+            <CheckCircle2 className="w-6 h-6 mb-2 text-teal-500 opacity-50" />
+            <p className="text-xs">All connections explored</p>
+            <p className="text-[10px] mt-0.5 opacity-60">{completedCount} simulations completed</p>
           </div>
         )}
       </CardContent>

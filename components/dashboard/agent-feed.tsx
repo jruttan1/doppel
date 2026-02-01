@@ -2,15 +2,20 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { CheckCircle2, MessageSquare, Zap, BarChart3 } from "lucide-react"
 
 interface TranscriptMessage {
   speaker: string
   id: string
   text: string
   timestamp: string
+}
+
+interface LogEntry {
+  type: "connect" | "agent" | "partner" | "analyzing" | "result"
+  label: string
+  text: string
 }
 
 interface AgentFeedProps {
@@ -41,7 +46,6 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
   useEffect(() => {
     completedRef.current = false
 
-    // Initial fetch
     const fetchInitial = async () => {
       const { data } = await supabase
         .from("simulations")
@@ -60,7 +64,6 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
     }
     fetchInitial()
 
-    // Realtime subscription
     const channel = supabase
       .channel(`simulation-${simulationId}`)
       .on(
@@ -85,7 +88,6 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
       )
       .subscribe()
 
-    // Stall timeout
     const timeout = setTimeout(() => {
       if (!completedRef.current) {
         handleComplete(0)
@@ -101,23 +103,65 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
   // Auto-scroll on new messages
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [messages, status])
 
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+  // Build log entries from transcript messages
+  const logEntries: LogEntry[] = []
+
+  // Opening entry
+  logEntries.push({
+    type: "connect",
+    label: "Connecting",
+    text: `Reaching out to ${partnerName}...`,
+  })
+
+  // Map messages to log entries
+  messages.forEach((msg, i) => {
+    const isAgent = i % 2 === 0
+    const excerpt = msg.text.length > 100 ? msg.text.slice(0, 100) + "..." : msg.text
+    logEntries.push({
+      type: isAgent ? "agent" : "partner",
+      label: isAgent ? "Your Agent" : partnerName,
+      text: excerpt,
+    })
+  })
+
+  // Completion entries
+  if (status === "completed" && score !== null) {
+    logEntries.push({
+      type: "analyzing",
+      label: "Analyzing",
+      text: "Evaluating compatibility...",
+    })
+    logEntries.push({
+      type: "result",
+      label: "Result",
+      text: score >= 70 ? `Score: ${score}% — Match!` : `Score: ${score}%`,
+    })
+  }
+
+  const getIcon = (type: LogEntry["type"]) => {
+    switch (type) {
+      case "connect":
+        return <Zap className="w-3 h-3 text-blue-400 shrink-0" />
+      case "agent":
+        return <MessageSquare className="w-3 h-3 text-teal-500 shrink-0" />
+      case "partner":
+        return <MessageSquare className="w-3 h-3 text-muted-foreground shrink-0" />
+      case "analyzing":
+        return <BarChart3 className="w-3 h-3 text-amber-400 shrink-0" />
+      case "result":
+        return <CheckCircle2 className="w-3 h-3 text-teal-500 shrink-0" />
+    }
+  }
 
   return (
-    <div className="rounded-lg border border-border bg-background/50 overflow-hidden">
+    <div className="h-full flex flex-col rounded-lg border border-border bg-background/50 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-secondary/30">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-secondary/30 flex-shrink-0">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{currentUserName}</span>
-          <span>&harr;</span>
+          <span className="opacity-40">&rarr;</span>
           <span className="font-medium text-foreground">{partnerName}</span>
         </div>
         {status === "running" ? (
@@ -129,55 +173,37 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
         ) : null}
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="h-72">
-        <div className="p-3 space-y-3">
-          {messages.map((msg, i) => {
-            const isMe = i % 2 === 0 // agent A = current user
-            const speakerName = isMe ? currentUserName : partnerName
-            return (
-              <div key={i} className={`flex gap-2 ${isMe ? "" : "flex-row-reverse"}`}>
-                <Avatar className="w-7 h-7 shrink-0">
-                  <AvatarFallback className={`text-[10px] ${isMe ? "bg-primary/20 text-primary" : "bg-secondary"}`}>
-                    {getInitials(speakerName)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className={`min-w-0 ${isMe ? "" : "flex flex-col items-end"}`}>
-                  <div
-                    className={`inline-block max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
-                      isMe
-                        ? "bg-primary/10 border border-primary/20 rounded-tl-none"
-                        : "bg-secondary rounded-tr-none"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
+      {/* Activity log */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+        <div className="space-y-1.5">
+          {logEntries.map((entry, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300"
+              style={{ animationDelay: `${Math.min(i * 50, 300)}ms`, animationFillMode: "backwards" }}
+            >
+              <div className="mt-0.5">{getIcon(entry.type)}</div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-semibold text-foreground">{entry.label}</span>
+                <span className="text-[11px] text-muted-foreground ml-1.5 break-words">{entry.text}</span>
               </div>
-            )
-          })}
+            </div>
+          ))}
 
-          {/* Typing indicator */}
+          {/* Running indicator */}
           {status === "running" && (
-            <div className="flex gap-2 flex-row-reverse">
-              <Avatar className="w-7 h-7 shrink-0">
-                <AvatarFallback className="text-[10px] bg-secondary">
-                  {getInitials(partnerName)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="bg-secondary px-3 py-2 rounded-2xl rounded-tr-none">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              </div>
+            <div className="flex items-center gap-2 pt-1">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500" />
+              </span>
+              <span className="text-[10px] text-muted-foreground">Processing...</span>
             </div>
           )}
 
           <div ref={scrollRef} />
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
