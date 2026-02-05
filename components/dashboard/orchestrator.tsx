@@ -56,8 +56,6 @@ export function Orchestrator() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Hollywood delay: ensure the "Scanning Network..." state
-      // is visible for at least SCAN_DELAY ms, even if API is fast
       const [data] = await Promise.all([
         fetch("/api/simulation/auto-connect", {
           method: "POST",

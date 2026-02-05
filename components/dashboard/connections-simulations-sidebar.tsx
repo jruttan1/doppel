@@ -115,14 +115,14 @@ export function ConnectionsSimulationsSidebar() {
         // Fetch all simulations (both directions - user as participant1 OR participant2)
         const { data: sims1, error: error1 } = await supabase
           .from('simulations')
-          .select('id, participant1, participant2, score, transcript')
+          .select('id, participant1, participant2, score, status, transcript')
           .eq('participant1', user.id)
           .order('score', { ascending: false, nullsFirst: false })
           .limit(50)
 
         const { data: sims2, error: error2 } = await supabase
           .from('simulations')
-          .select('id, participant1, participant2, score, transcript')
+          .select('id, participant1, participant2, score, status, transcript')
           .eq('participant2', user.id)
           .order('score', { ascending: false, nullsFirst: false })
           .limit(50)
@@ -174,9 +174,9 @@ export function ConnectionsSimulationsSidebar() {
 
         const userMap = new Map(users.map(u => [u.id, u]))
 
-        // Build connections (score >= 70)
+        // Build connections (completed with score >= 70)
         const connectionsList: ConnectionPreview[] = simsData
-          .filter(s => s.score && s.score >= 70)
+          .filter(s => (s as any).status === 'completed' && s.score && s.score >= 70)
           .map((sim) => {
             const user = userMap.get(sim.partnerId)
             const persona = user?.persona as any
@@ -233,8 +233,12 @@ export function ConnectionsSimulationsSidebar() {
             targetName: user?.name || "Unknown",
             targetRole: roleText,
             targetAvatar: undefined,
-            status: sim.score !== null && sim.score !== undefined ? "completed" : "in_progress",
-            score: sim.score || undefined,
+            status: (sim as any).status === 'completed' ? "completed"
+              : (sim as any).status === 'failed' ? "failed"
+              : (sim as any).status === 'running' ? "in_progress"
+              : sim.score !== null && sim.score !== undefined ? "completed"  // backward compat: old sims without status field
+              : "in_progress",
+            score: sim.score ?? undefined,
             turns: messages.length,
             startedAt,
             completedAt: sim.score !== null ? startedAt : undefined,
@@ -253,13 +257,20 @@ export function ConnectionsSimulationsSidebar() {
     }
 
     fetchData()
-    
+
     // Poll for new simulations every 10 seconds
     const interval = setInterval(() => {
       fetchData()
     }, 10000)
-    
-    return () => clearInterval(interval)
+
+    // Refresh when a simulation completes (small delay to ensure DB write propagates)
+    const handleSimCompleted = () => setTimeout(() => fetchData(), 1000)
+    window.addEventListener("simulation-completed", handleSimCompleted)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("simulation-completed", handleSimCompleted)
+    }
   }, [supabase])
 
   const matchedConnections = connections.filter((c) => c.status === "matched")
@@ -279,15 +290,18 @@ export function ConnectionsSimulationsSidebar() {
   const getStatusBadge = (status: Simulation["status"], score?: number) => {
     switch (status) {
       case "completed":
-        return (
-          <Badge className={score && score >= 70 ? "bg-teal-500/10 text-teal-500 text-xs" : "bg-muted text-muted-foreground text-xs"}>
-            {score}%
-          </Badge>
-        )
+        if (score !== undefined && score !== null) {
+          return (
+            <Badge className={score >= 70 ? "bg-teal-500/10 text-teal-500 text-xs" : "bg-muted text-muted-foreground text-xs"}>
+              {score}%
+            </Badge>
+          )
+        }
+        return <Badge variant="secondary" className="text-xs">Done</Badge>
       case "in_progress":
-        return <Badge className="bg-yellow-500/10 text-yellow-500 text-xs animate-pulse">...</Badge>
+        return <Badge className="bg-yellow-500/10 text-yellow-500 text-xs animate-pulse">Running</Badge>
       case "failed":
-        return <Badge variant="secondary" className="text-xs">No</Badge>
+        return <Badge variant="secondary" className="text-destructive/70 text-xs">Failed</Badge>
     }
   }
 

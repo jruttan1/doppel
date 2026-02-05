@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, MessageSquare, Zap, BarChart3 } from "lucide-react"
+import { SimulationOrb, type SimulationPhase } from "./simulation-orb"
 
 interface TranscriptMessage {
   speaker: string
@@ -12,10 +12,10 @@ interface TranscriptMessage {
   timestamp: string
 }
 
-interface LogEntry {
-  type: "connect" | "agent" | "partner" | "analyzing" | "result"
-  label: string
+interface ThoughtEntry {
   text: string
+  turnNumber: number
+  timestamp: string
 }
 
 interface AgentFeedProps {
@@ -26,35 +26,48 @@ interface AgentFeedProps {
 }
 
 const STALL_TIMEOUT = 180_000 // 3 minutes
+const THOUGHT_DISPLAY_MS = 6000
 
-export function AgentFeed({ simulationId, partnerName, currentUserName, onComplete }: AgentFeedProps) {
-  const [messages, setMessages] = useState<TranscriptMessage[]>([])
+export function AgentFeed({
+  simulationId,
+  partnerName,
+  currentUserName,
+  onComplete,
+}: AgentFeedProps) {
+  const [messageCount, setMessageCount] = useState(0)
   const [status, setStatus] = useState<"running" | "completed" | "failed">("running")
   const [score, setScore] = useState<number | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [thoughts, setThoughts] = useState<ThoughtEntry[]>([])
+  const [visibleThought, setVisibleThought] = useState<ThoughtEntry | null>(null)
+  const [thoughtFading, setThoughtFading] = useState(false)
   const completedRef = useRef(false)
   const supabase = createClient()
 
-  const handleComplete = useCallback((s: number) => {
-    if (completedRef.current) return
-    completedRef.current = true
-    setScore(s)
-    setStatus("completed")
-    onComplete(s)
-  }, [onComplete])
+  const handleComplete = useCallback(
+    (s: number) => {
+      if (completedRef.current) return
+      completedRef.current = true
+      setScore(s)
+      setStatus("completed")
+      onComplete(s)
+    },
+    [onComplete]
+  )
 
+  // Realtime subscription
   useEffect(() => {
     completedRef.current = false
 
     const fetchInitial = async () => {
       const { data } = await supabase
         .from("simulations")
-        .select("transcript, score, status")
+        .select("transcript, score, status, thoughts")
         .eq("id", simulationId)
         .single()
 
       if (data) {
-        setMessages(data.transcript || [])
+        setMessageCount((data.transcript as TranscriptMessage[] | null)?.length || 0)
+        setThoughts((data.thoughts as ThoughtEntry[] | null) || [])
         if (data.status === "completed" && data.score !== null && data.score !== undefined) {
           handleComplete(data.score)
         } else if (data.status === "failed") {
@@ -77,7 +90,10 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
         (payload) => {
           const row = payload.new as any
           if (row.transcript) {
-            setMessages(row.transcript)
+            setMessageCount((row.transcript as TranscriptMessage[]).length)
+          }
+          if (row.thoughts) {
+            setThoughts(row.thoughts as ThoughtEntry[])
           }
           if (row.status === "completed" && row.score !== null && row.score !== undefined) {
             handleComplete(row.score)
@@ -100,109 +116,102 @@ export function AgentFeed({ simulationId, partnerName, currentUserName, onComple
     }
   }, [simulationId, supabase, handleComplete])
 
-  // Auto-scroll on new messages
+  // Show new thoughts with fade-in/fade-out
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, status])
+    if (thoughts.length === 0) return
+    const latest = thoughts[thoughts.length - 1]
 
-  // Build log entries from transcript messages
-  const logEntries: LogEntry[] = []
+    // Don't re-show the same thought
+    if (visibleThought?.timestamp === latest.timestamp) return
 
-  // Opening entry
-  logEntries.push({
-    type: "connect",
-    label: "Connecting",
-    text: `Reaching out to ${partnerName}...`,
-  })
+    setThoughtFading(false)
+    setVisibleThought(latest)
 
-  // Map messages to log entries
-  messages.forEach((msg, i) => {
-    const isAgent = i % 2 === 0
-    const excerpt = msg.text.length > 100 ? msg.text.slice(0, 100) + "..." : msg.text
-    logEntries.push({
-      type: isAgent ? "agent" : "partner",
-      label: isAgent ? "Your Agent" : partnerName,
-      text: excerpt,
-    })
-  })
+    const fadeTimer = setTimeout(() => setThoughtFading(true), THOUGHT_DISPLAY_MS - 500)
+    const hideTimer = setTimeout(() => {
+      setVisibleThought(null)
+      setThoughtFading(false)
+    }, THOUGHT_DISPLAY_MS)
 
-  // Completion entries
-  if (status === "completed" && score !== null) {
-    logEntries.push({
-      type: "analyzing",
-      label: "Analyzing",
-      text: "Evaluating compatibility...",
-    })
-    logEntries.push({
-      type: "result",
-      label: "Result",
-      text: score >= 70 ? `Score: ${score}% — Match!` : `Score: ${score}%`,
-    })
-  }
-
-  const getIcon = (type: LogEntry["type"]) => {
-    switch (type) {
-      case "connect":
-        return <Zap className="w-3 h-3 text-blue-400 shrink-0" />
-      case "agent":
-        return <MessageSquare className="w-3 h-3 text-teal-500 shrink-0" />
-      case "partner":
-        return <MessageSquare className="w-3 h-3 text-muted-foreground shrink-0" />
-      case "analyzing":
-        return <BarChart3 className="w-3 h-3 text-amber-400 shrink-0" />
-      case "result":
-        return <CheckCircle2 className="w-3 h-3 text-teal-500 shrink-0" />
+    return () => {
+      clearTimeout(fadeTimer)
+      clearTimeout(hideTimer)
     }
-  }
+  }, [thoughts.length])
+
+  // Derive phase
+  const phase: SimulationPhase =
+    status === "completed" && score !== null
+      ? "done"
+      : status === "completed"
+        ? "analyzing"
+        : messageCount === 0
+          ? "connecting"
+          : "chatting"
+
+  // Status text
+  const statusText =
+    phase === "connecting"
+      ? `reaching out to ${partnerName}...`
+      : phase === "chatting" && messageCount < 5
+        ? "your agent is chatting..."
+        : phase === "chatting"
+          ? "deep in conversation..."
+          : phase === "analyzing"
+            ? "analyzing compatibility..."
+            : score !== null && score >= 70
+              ? `${score}% — match found`
+              : score !== null
+                ? `${score}%`
+                : ""
 
   return (
-    <div className="h-full flex flex-col rounded-lg border border-border bg-background/50 overflow-hidden">
+    <div className="h-full flex flex-col rounded-lg border border-border bg-black overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-secondary/30 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-black shrink-0">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{currentUserName}</span>
           <span className="opacity-40">&rarr;</span>
           <span className="font-medium text-foreground">{partnerName}</span>
         </div>
-        {status === "running" ? (
-          <Badge className="bg-blue-500/10 text-blue-500 text-[10px] animate-pulse">Live</Badge>
+        {phase !== "done" ? (
+          <Badge className="bg-blue-500/10 text-blue-500 text-[10px] animate-pulse border-0">
+            Live
+          </Badge>
         ) : score !== null ? (
-          <Badge className={score >= 70 ? "bg-teal-500/10 text-teal-500 text-[10px]" : "bg-muted text-muted-foreground text-[10px]"}>
+          <Badge
+            className={
+              score >= 70
+                ? "bg-teal-500/10 text-teal-500 text-[10px] border-0"
+                : "bg-muted text-muted-foreground text-[10px] border-0"
+            }
+          >
             {score}%
           </Badge>
         ) : null}
       </div>
 
-      {/* Activity log */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
-        <div className="space-y-1.5">
-          {logEntries.map((entry, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300"
-              style={{ animationDelay: `${Math.min(i * 50, 300)}ms`, animationFillMode: "backwards" }}
-            >
-              <div className="mt-0.5">{getIcon(entry.type)}</div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[11px] font-semibold text-foreground">{entry.label}</span>
-                <span className="text-[11px] text-muted-foreground ml-1.5 break-words">{entry.text}</span>
-              </div>
-            </div>
-          ))}
+      {/* Orb + Thoughts */}
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center relative bg-black">
+        <SimulationOrb phase={phase} />
 
-          {/* Running indicator */}
-          {status === "running" && (
-            <div className="flex items-center gap-2 pt-1">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500" />
-              </span>
-              <span className="text-[10px] text-muted-foreground">Processing...</span>
-            </div>
-          )}
+        {/* Status text */}
+        <p className="text-[11px] text-muted-foreground/60 mt-4 tracking-wide lowercase">
+          {statusText}
+        </p>
 
-          <div ref={scrollRef} />
-        </div>
+        {/* Thought bubble */}
+        {visibleThought && (
+          <div
+            className={`mt-5 max-w-[85%] text-center transition-opacity duration-500 ${
+              thoughtFading ? "opacity-0" : "opacity-100"
+            }`}
+          >
+            <p className="text-xs text-muted-foreground/80 italic leading-relaxed">
+              &ldquo;{visibleThought.text}&rdquo;
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

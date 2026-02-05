@@ -128,6 +128,7 @@ export async function POST(req: Request) {
         const graph = compileSimulationGraph({ checkpointer });
         await graph.invoke(initialState, {
           configurable: { thread_id: sim.id },
+          recursionLimit: 100,
         });
       } catch (err: any) {
         console.error('Background graph execution failed:', err.message);
