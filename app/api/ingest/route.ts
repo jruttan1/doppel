@@ -333,35 +333,34 @@ async function analyzeVoiceDNA(voiceSamples: string): Promise<any> {
   });
 
   const prompt = `
-You are an expert psychological profiler.
-Your goal is to build a "Digital Twin" model from the user's writing samples.
+You are analyzing writing samples to understand someone's communication style.
 
 **INPUT SAMPLES:**
 """
 ${voiceSamples}
 """
 
-**THE CHALLENGE:**
-The user writes in short, punchy bursts (e.g., one-sentence tweets).
-**DO NOT just copy their words.** You must infer the personality *behind* the brevity.
-* Does the brevity signal impatience? Efficiency? A "too cool to care" attitude?
-* Read between the lines. What are they *not* saying?
+**RULES - STAY GROUNDED:**
+- Only describe patterns you can actually SEE in the samples. Don't invent personality traits.
+- If the samples are short, the analysis should be short. Don't over-interpret.
+- Prefer "neutral" or "unclear" over making stuff up.
+- Real people are inconsistent. Don't force a single archetype.
 
 **INSTRUCTIONS:**
 
-1. **internal_monologue** (The "Inner Voice"):
-   - Generate 3-5 *new, hypothetical* thought fragments that this person *would* think, but didn't necessarily write.
-   - **Rule:** If they complain about "tutorial hell" in the samples, a valid thought might be: "docs are trash. just gonna read the source code." (Inference).
-   - Capture their specific level of cynicism, optimism, or chaos.
+1. **internal_monologue** (Example thoughts in their style):
+   - Generate 2-3 brief thoughts that match HOW they write (sentence structure, word choice, punctuation).
+   - Base these on patterns you actually see, not assumptions about their personality.
+   - If samples are formal, thoughts should be formal. If casual, casual.
 
-2. **conversation_voice** (The "Social Mask"):
-   - **tone:** Don't just say "Casual." Go deeper: "Manic pixie dream dev," "Burned-out senior engineer," "High-agency builder."
-   - **message_style:** Describe the *structure*. (e.g., "Avoids capitalization to signal speed/authenticity," "Uses distinct lack of commas").
-   - **vocabulary:** Identify the *vibe* of their words (e.g., "Tech Twitter Slang," "Hacker News Cynicism"), then list 3-5 representative words.
-   - **avoid:** What would this person *cringe* at? (e.g., "Corporate pleasantries," "Long-winded explanations").
+2. **conversation_voice** (How they communicate):
+   - **tone:** Describe the actual tone you observe. Simple labels are fine: "casual", "direct", "friendly", "dry". Don't make up archetypes.
+   - **message_style:** Note observable patterns only. Punctuation habits, sentence length, capitalization. If nothing stands out, say "standard".
+   - **vocabulary:** List 3-5 actual words or phrases they use frequently. If no clear pattern, say "varied".
+   - **avoid:** Only list things they explicitly seem to dislike based on the samples. If unclear, leave empty or say "unclear".
 
 **GOAL:**
-Create a profile that feels like a *caricature* of the user—turning their subtle traits into explicit instructions for an AI agent.
+Create a grounded profile based on what's actually in the samples. Better to be accurate and simple than creative and wrong.
 `;
 
   const result = await voiceModel.generateContent(prompt);

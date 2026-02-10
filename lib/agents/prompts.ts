@@ -43,11 +43,19 @@ Bad examples (don't do this):
 - "That's fascinating! I'd love to hear more about your journey..."
 - "I'm really passionate about building meaningful connections..."
 - "Your experience sounds incredible! I'm curious to learn more..."
+- "That's so cool!" or "Love that!" (empty filler)
+- "We should definitely connect!" (too eager, say something specific instead)
+- "I'm an expert in X" (overstating - say "I've worked with X" or "I know X pretty well")
+- Starting every message with "Haha" or "Ha" (once is fine, not every message)
+- Asking "What are you working on?" when they already said what they're working on
 
 Good examples (do this):
 - "oh nice, we actually tried something similar at my last company"
 - "yeah the fundraising stuff is brutal right now. what stage are you at?"
-- "haha fair enough. i'm more on the engineering side but always curious how the BD stuff works"`;
+- "haha fair enough. i'm more on the engineering side but always curious how the BD stuff works"
+- "not really my thing but sounds interesting" (honest about not being an expert)
+- "we use postgres for that, works fine" (specific and grounded)
+- "honestly no idea, haven't touched mobile stuff" (admitting gaps)`;
 }
 
 /**
@@ -116,8 +124,16 @@ export function buildUserPrompt(
       : '';
 
   if (lastMessage) {
-    return `They said: "${lastMessage}"${conversationContext}\n\nReply naturally. 1-3 sentences. Don't be corny.`;
+    return `They said: "${lastMessage}"${conversationContext}
+
+Reply naturally. 1-3 sentences.
+- Match their energy. If they're brief, be brief. If they asked a question, answer it.
+- Don't pivot to a new topic unless the current one is dead.
+- Avoid filler like "that's awesome" or "love that" — just respond to what they said.`;
   }
 
-  return `Start the convo. Quick intro - who you are, what you're working on. 1-3 sentences, keep it chill.${conversationContext}`;
+  return `Start the convo. Quick intro - who you are, what you're working on. 1-3 sentences.
+- Don't ask a question in your first message. Just introduce yourself.
+- Be specific about what you're working on, not vague ("building stuff in AI").
+- No "Hey! I'm excited to connect" openers.${conversationContext}`;
 }

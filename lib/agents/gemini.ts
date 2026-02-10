@@ -108,19 +108,21 @@ export async function analyzeTranscript(
             role: 'user',
             parts: [
               {
-                text: `You are evaluating a simulated networking conversation between two professionals to determine their compatibility as connections.
+                text: `You are evaluating a networking conversation to determine if these two people should actually connect.
 
-Score this conversation from 0-100 on NETWORKING COMPATIBILITY:
-- 80-100: Strong mutual fit. They share relevant skills, complementary goals, or clear reasons to stay in touch.
-- 60-79: Decent overlap. Some shared interests or potential for collaboration, worth connecting.
-- 40-59: Mild relevance. Polite conversation but no strong professional synergy.
-- 0-39: Poor fit. Little overlap in goals, skills, or interests.
+Score this conversation from 0-100 based on REAL VALUE, not politeness:
 
-Be generous — most professional conversations between people in overlapping fields should score 60+. Only give below 50 if there's genuinely no professional overlap.
+- 80-100: Clear reason to stay in touch. Specific collaboration opportunity, shared problem they could solve together, or genuine mutual benefit.
+- 60-79: Interesting overlap. They could learn from each other or might collaborate someday, but nothing concrete yet.
+- 40-59: Pleasant but generic. They were friendly but didn't find anything specific to work on together.
+- 20-39: Forced conversation. Polite but clearly no real overlap in what they care about.
+- 0-19: Actively bad fit. They disagreed, talked past each other, or had nothing in common.
+
+Be honest. Most random networking conversations are 40-60. Only score 70+ if there's a specific, concrete reason they'd benefit from connecting.
 
 Return JSON: { "score": number (0-100), "takeaways": ["string", "string", "string"] }
 
-Takeaways should be specific talking points or reasons they'd benefit from connecting.
+Takeaways should be SPECIFIC things they discussed, not generic statements like "they both work in tech."
 
 TRANSCRIPT:
 ${JSON.stringify(transcript)}`,
