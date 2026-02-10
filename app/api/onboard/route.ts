@@ -201,6 +201,7 @@ export async function POST(req: Request) {
       linkedinBase64,
       githubUrl,
       networkingGoals,
+      voiceSignature,
       skillsDesired,
       locationDesired,
     } = await req.json();
@@ -225,7 +226,9 @@ export async function POST(req: Request) {
       networking_goals: networkingGoals || [],
       skills_desired: skillsDesired || [],
       location_desired: locationDesired || [],
-      ingestion_status: 'completed',
+      ingestion_status: 'processing',
+      // Save the actual voice snippets from user's onboarding for Voice DNA analysis
+      voice_signature: voiceSignature || null,
     };
 
     // If we parsed files, add that data to the payload
@@ -236,8 +239,8 @@ export async function POST(req: Request) {
       }
       updatePayload.linkedin_url = unifiedProfile.identity?.linkedin_url || null;
       updatePayload.skills = unifiedProfile.skills?.verified_hard_skills || [];
-      updatePayload.voice_signature = unifiedProfile.analysis?.voice_tone || "Neutral";
-      
+      // Note: voice_signature is now set from user's actual snippets above, not hardcoded
+
       // If user didn't provide GitHub manually, try to find it in the PDF
       if (!githubUrl && unifiedProfile.identity?.github_url) {
         updatePayload.github_url = unifiedProfile.identity.github_url;

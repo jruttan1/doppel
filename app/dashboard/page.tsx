@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
 import { DashboardShell } from "@/components/dashboard/shell"
 import { NetworkGraph } from "@/components/dashboard/network-graph"
 import { Orchestrator } from "@/components/dashboard/orchestrator"
@@ -8,6 +10,31 @@ export const metadata = {
 }
 
 export default async function DashboardPage() {
+  const supabase = await createClient()
+
+  // Check if user is authenticated
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  // Check if user has completed onboarding
+  const { data: profile } = await supabase
+    .from("users")
+    .select("ingestion_status")
+    .eq("id", user.id)
+    .single()
+
+  // Redirect to onboarding if not complete
+  if (!profile || profile.ingestion_status !== "complete") {
+    // If they're in the middle of processing, send to creating page
+    if (profile?.ingestion_status === "processing") {
+      redirect("/creating")
+    }
+    // Otherwise send to onboarding
+    redirect("/onboarding")
+  }
 
   return (
     <DashboardShell>
