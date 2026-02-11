@@ -53,23 +53,26 @@ export default function CreatingPage() {
         onboardingData = onboardingDataRef.current
       }
 
-      if (onboardingData) {
-        console.log("Starting onboarding API call...")
-
-        const res = await fetch('/api/onboard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: onboardingData,
-        })
-
-        const data = await res.json()
-
-        if (!res.ok || data.error) {
-          throw new Error(data.error || 'Failed to start onboarding')
-        }
-
-        console.log("Onboarding API response:", data)
+      if (!onboardingData) {
+        setError("Missing onboarding data — please restart")
+        return
       }
+
+      console.log("Starting onboarding API call...")
+
+      const res = await fetch('/api/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: onboardingData,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to start onboarding')
+      }
+
+      console.log("Onboarding API response:", data)
     } catch (err: any) {
       console.error("Failed to start onboarding:", err)
       setError(err.message || 'Something went wrong. Please try again.')
