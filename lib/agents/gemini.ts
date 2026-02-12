@@ -203,6 +203,8 @@ After each takeaway, ask "so what? why does this matter?" If you can't answer wi
 4. Each takeaway = 1 specific opportunity or asset
 5. If they mentioned nothing actionable, say "No clear opportunity identified"
 
+Return JSON in this exact format: ${jsonFormat}
+
 TRANSCRIPT:
 ${JSON.stringify(transcript)}`,
               },

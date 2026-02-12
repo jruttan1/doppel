@@ -116,25 +116,25 @@ THE THOUGHT SHOULD BE ABOUT THEM, NOT YOU:
 - Do they have real experience or just buzzwords?
 - Any red flags or green flags?
 
-EXAMPLES (copy this vibe):
-- "okay they actually shipped this, not just talking"
-- "hmm, they're at ${otherPersonName ? 'a Series A' : 'Stripe'}... could be useful"
+EXAMPLES (vary the opener each time):
+- "okay wait, they actually shipped this"
 - "idk, sounds like they just read a blog post"
-- "wait they're hiring? noted."
+- "oh damn, they're hiring? noted."
 - "ngl their background is kinda thin"
-- "oh they know the YC folks, interesting"
-- "damn, exact same problem i had last year"
+- "wait they know the YC folks, interesting"
+- "tbh exact same problem i had last year"
+- "huh, not what i expected"
 
 RULES:
 - Evaluate THEM, not yourself (you already know your own stuff)
-- Casual opener: hmm, okay, wait, oh, idk, ngl, damn, huh, tbh
+- VARY your opener each thought - pick from: okay, wait, oh, idk, ngl, damn, huh, tbh, alright (NOT "hmm" every time)
 - Make a judgment: impressed, skeptical, interested, suspicious, excited
 - Under 10 words. lowercase. no emojis.
 - Sound like YOUR voice snippet - your word choices, your energy
 
-BAD: "they seem to have database experience" (boring, no opinion)
-BAD: "unity health what even is that" (that's YOUR company, you know it)
-GOOD: "okay wait, they've actually done this before"`;
+BAD: "hmm, they seem to have database experience" (boring opener, no opinion)
+BAD: "hmm, unity health what even is that" (that's YOUR company + repetitive opener)
+GOOD: "wait, they've actually done this before"`;
 
   const history = recentMessages
     .slice(-3)
