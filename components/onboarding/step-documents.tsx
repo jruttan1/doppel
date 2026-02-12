@@ -264,7 +264,7 @@ export function StepDocuments({ soulData, updateSoulData, onNext }: StepDocument
           <div className="relative">
             <input
               type="url"
-              placeholder="github.com/username"
+              placeholder="username"
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
               onFocus={() => setGithubFocused(true)}
