@@ -62,7 +62,6 @@ export function SimulationDetailModal({ simulation, onClose }: SimulationDetailM
       const body = encodeURIComponent(
         `Hey ${result.receiverFirstName},\n\n` +
         `My AI agent ran a sim with yours on Doppels and flagged us as a ${result.score}% match.\n\n` +
-        `TL;DR: ${result.topTakeaway}\n\n` +
         `Wanted to reach out directly — let me know if you're up for a quick chat.\n\n` +
         `${result.senderName}`
       )
