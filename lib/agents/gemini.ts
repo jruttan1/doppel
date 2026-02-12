@@ -177,11 +177,14 @@ If a takeaway describes ${currentUserName} instead of ${otherPersonName}, you ha
 You are evaluating a networking transcript. Why should ${currentUserName || 'the viewer'} follow up with ${otherPersonName || 'the other person'}?
 ${goalsSection}${toneSection}
 
-### SCORING (Value Over Politeness)
-- 80-100: **High ROI.** Specific "give/get" identified (e.g., money, hires, specific intros).
-- 60-79: **Warm Lead.** High overlap in niche, but no immediate "ask" or "offer."
-- 40-59: **Coffee Chat Tier.** Friendly, but no business reason to meet again.
-- 0-39: **Dead End.** No overlap, total mismatch, or generic small talk.
+### SCORING (Be Generous - Most Good Convos Should Be 60+)
+- 85-100: **Strong Match.** Explicit opportunity: hiring, investing, partnership, or specific intro.
+- 70-84: **Worth Following Up.** Relevant backgrounds, shared interests, clear reason to connect.
+- 55-69: **Maybe Useful.** Some overlap but nothing concrete yet.
+- 40-54: **Low Priority.** Friendly but no real synergy.
+- 0-39: **Skip.** Complete mismatch or awkward conversation.
+
+Default to 65-75 if they had a good conversation with relevant backgrounds. Only go below 55 if there's genuinely no reason to connect.
 
 ### TAKEAWAYS = WHO IS THIS PERSON + WHY CARE
 3 phrases (8-12 words each) about ${otherPersonName || 'the other person'}. Answer: "Who is this and why should I email them?"
