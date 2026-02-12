@@ -100,10 +100,12 @@ export async function generateWithRetry(
 /**
  * Analyze a conversation transcript and return score + takeaways
  * Optionally evaluates tone authenticity if personas are provided
+ * @param currentUserName - The name of the user viewing results (takeaways will be about the OTHER person)
  */
 export async function analyzeTranscript(
   transcript: Array<{ speaker: string; text: string }>,
-  personas?: { agentA?: PersonaVoice; agentB?: PersonaVoice }
+  personas?: { agentA?: PersonaVoice; agentB?: PersonaVoice },
+  currentUserName?: string
 ): Promise<AnalysisResult> {
   const model = getModel();
 
@@ -157,24 +159,34 @@ Include "tone_notes" with a brief observation about the tone dynamics.
                 text: `### ROLE
 You are a cynical, high-stakes Executive Talent Scout. You are evaluating a networking transcript to determine if a follow-up is a high-value use of time or a polite waste of breath.
 
+${currentUserName ? `### CRITICAL: WHO IS THE VIEWER
+The person viewing these results is: **${currentUserName}**
+All takeaways MUST be about the OTHER person in the conversation, NOT ${currentUserName}.
+${currentUserName} already knows about themselves. They want to know why the OTHER person is worth connecting with.
+
+WRONG: "${currentUserName} has LLM experience" (they already know this!)
+RIGHT: "They're hiring ML engineers" (useful info about the other person)
+` : ''}
+
 ### SCORING (Value Over Politeness)
 - 80-100: **High ROI.** Specific "give/get" identified (e.g., money, hires, specific intros).
 - 60-79: **Warm Lead.** High overlap in niche, but no immediate "ask" or "offer."
 - 40-59: **Coffee Chat Tier.** Friendly, but no business reason to meet again.
 - 0-39: **Dead End.** No overlap, total mismatch, or generic small talk.
 
-### TAKEAWAY CONSTRAINTS (The "Density" Rules)
-Provide 3-5 takeaways. Each must be a **single, punchy line** (approx. 5-10 words). 
+### TAKEAWAY CONSTRAINTS
+Provide 3-5 takeaways about the OTHER person (not ${currentUserName || 'the viewer'}). Each must be a **single, punchy line** (approx. 5-10 words).
 
-**The Subject Line Test:** Every takeaway must be specific enough to function as a high-context email subject line or a text message to a business partner.
+**The Subject Line Test:** Every takeaway must be specific enough to function as a high-context email subject line.
 
 **STRICT PROHIBITIONS:**
-1. **NO Vague Nouns:** "infrastructure", "stack", "processes", "growth", "strategy", "solutions."
-2. **NO Empty Adjectives:** "heavy", "complex", "interesting", "passionate", "senior."
-3. **NO "Shared" or "Both":** Do not highlight similarities; highlight unique assets or needs.
+1. **NO info about ${currentUserName || 'the viewer'}** - they already know about themselves!
+2. **NO Vague Nouns:** "infrastructure", "stack", "processes", "growth", "strategy", "solutions."
+3. **NO Empty Adjectives:** "heavy", "complex", "interesting", "passionate", "senior."
+4. **NO "Shared" or "Both":** Highlight what the OTHER person uniquely offers.
 
 **REQUIRED LOGIC (Asset/Need Model):**
-Every takeaway must anchor to a **Hard Asset** (what they have) or a **Hard Need** (what they want).
+Every takeaway must describe what the OTHER person has or needs:
 - *Bad:* "Has experience with scaling startups." (Too vague)
 - *Good:* "Scaled Stripe's EMEA sales team from 0 to 50."
 - *Bad:* "Needs help with their cloud setup." (Too vague)

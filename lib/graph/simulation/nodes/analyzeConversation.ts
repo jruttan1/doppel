@@ -30,6 +30,7 @@ export async function analyzeConversationNode(
 
   try {
     // Extract voice snippets and networking goals for evaluation
+    // agentA is the current user, agentB is the partner they're evaluating
     const personas = {
       agentA: state.agentA?.persona
         ? {
@@ -52,7 +53,8 @@ export async function analyzeConversationNode(
         speaker: t.speaker,
         text: t.text,
       })),
-      personas
+      personas,
+      state.agentA?.name // Pass current user's name so takeaways focus on the OTHER person
     );
 
     return { analysis };
