@@ -85,6 +85,12 @@ export function ConnectionsSimulationsSidebar() {
           .in('id', userIds)
 
         if (usersError || !users) {
+          console.error("Failed to load users for simulations sidebar", {
+            error: usersError,
+            userIds,
+            message: !users ? "No users returned from Supabase" : undefined,
+          })
+          setSimulations([])
           setSimulationsLoaded(true)
           return
         }
