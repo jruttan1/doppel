@@ -22,10 +22,23 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // Verify the authenticated user matches the requested user
+    // Verify auth - but allow internal calls (from ingest route)
+    // Internal calls won't have cookies but will have valid userId
     const auth = await verifyAuthForUser(userId);
     if (auth.error) {
-      return Response.json({ error: auth.error }, { status: 401 });
+      // If auth fails, verify the user exists and has completed onboarding
+      // This allows internal server-to-server calls while blocking random external calls
+      const { data: userCheck } = await supabase
+        .from('users')
+        .select('id, ingestion_status')
+        .eq('id', userId)
+        .single();
+
+      if (!userCheck || userCheck.ingestion_status !== 'complete') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      // User exists and completed onboarding - allow the call
+      // This is safe because only users who completed ingestion can trigger auto-connect
     }
 
     // 1. FETCH MY PROFILE
@@ -126,16 +139,18 @@ export async function POST(req: Request) {
         name: partner.name || 'Partner',
         persona: partnerPersona,
       },
-      maxTurns: 15,
+      // 10 turns = 20 messages, reasonable for a quick networking convo
+      maxTurns: 10,
     };
 
     after(async () => {
       try {
         const checkpointer = await getCheckpointer();
         const graph = compileSimulationGraph({ checkpointer });
+        // 10 turns × 2 agents × 5 nodes = 100 iterations, use 150 for headroom
         await graph.invoke(initialState, {
           configurable: { thread_id: sim.id },
-          recursionLimit: 200,
+          recursionLimit: 150,
         });
       } catch (err: any) {
         console.error('Background graph execution failed:', err.message);

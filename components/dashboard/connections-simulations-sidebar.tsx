@@ -3,40 +3,27 @@
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sparkles, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react"
-import { ConnectionDetailModal } from "./connection-detail-modal"
+import { SimulationDetailModal } from "./simulation-detail-modal"
 import { createClient } from "@/lib/supabase/client"
-
-interface ConnectionPreview {
-  id: string
-  name: string
-  role: string
-  avatar: string
-  compatibility: number
-  icebreaker: string
-  status: "matched" | "connected"
-  matchedAt: string
-  simulationId?: string
-}
 
 interface Simulation {
   id: string
+  partnerId: string
   targetName: string
   targetRole: string
   targetAvatar?: string
   status: "completed" | "in_progress" | "failed"
   score?: number
   startedAt: string
+  takeaways?: string[]
 }
 
 export function ConnectionsSimulationsSidebar() {
-  const [selectedConnection, setSelectedConnection] = useState<ConnectionPreview | null>(null)
-  const [activeTab, setActiveTab] = useState<"connections" | "simulations">("connections")
-  const [connections, setConnections] = useState<ConnectionPreview[]>([])
-  const [simulationsLoaded, setSimulationsLoaded] = useState(false)
+  const [selectedSimulation, setSelectedSimulation] = useState<Simulation | null>(null)
   const [simulations, setSimulations] = useState<Simulation[]>([])
+  const [simulationsLoaded, setSimulationsLoaded] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -63,7 +50,6 @@ export function ConnectionsSimulationsSidebar() {
         const simError = error1 || error2
         if (simError) {
           console.error("Error fetching simulations:", simError)
-          setConnections([])
           setSimulations([])
           setSimulationsLoaded(true)
           return
@@ -86,7 +72,6 @@ export function ConnectionsSimulationsSidebar() {
           })
 
         if (simsData.length === 0) {
-          setConnections([])
           setSimulations([])
           setSimulationsLoaded(true)
           return
@@ -100,42 +85,17 @@ export function ConnectionsSimulationsSidebar() {
           .in('id', userIds)
 
         if (usersError || !users) {
+          console.error("Failed to load users for simulations sidebar", {
+            error: usersError,
+            userIds,
+            message: !users ? "No users returned from Supabase" : undefined,
+          })
+          setSimulations([])
+          setSimulationsLoaded(true)
           return
         }
 
         const userMap = new Map(users.map(u => [u.id, u]))
-
-        // Build connections (completed with score >= 70)
-        const connectionsList: ConnectionPreview[] = simsData
-          .filter(s => (s as any).status === 'completed' && s.score && s.score >= 70)
-          .map((sim) => {
-            const partnerUser = userMap.get(sim.partnerId)
-            const persona = partnerUser?.persona as any
-            const identity = persona?.identity || {}
-            const tagline = partnerUser?.tagline || ""
-            const role = identity?.role || tagline.split("@")[0]?.trim() || "Professional"
-            const company = identity?.company || tagline.split("@")[1]?.split("|")[0]?.trim() || ""
-            const roleText = company ? `${role} @ ${company}` : role
-
-            const takeaways = (sim.takeaways as string[] | null) || []
-            const icebreaker = takeaways.length > 0
-              ? takeaways[0].substring(0, 120) + (takeaways[0].length > 120 ? "..." : "")
-              : `${sim.score}% compatibility match`
-
-            const matchedAt = "Just now"
-
-            return {
-              id: partnerUser?.id || sim.partnerId,
-              name: partnerUser?.name || "Unknown",
-              role: roleText,
-              avatar: "",
-              compatibility: sim.score || 0,
-              icebreaker,
-              status: "matched" as const,
-              matchedAt,
-              simulationId: sim.id,
-            }
-          })
 
         // Build simulations list
         const simulationsList: Simulation[] = simsData.map((sim) => {
@@ -151,6 +111,7 @@ export function ConnectionsSimulationsSidebar() {
 
           return {
             id: sim.id,
+            partnerId: sim.partnerId,
             targetName: partnerUser?.name || "Unknown",
             targetRole: roleText,
             targetAvatar: undefined,
@@ -161,10 +122,10 @@ export function ConnectionsSimulationsSidebar() {
               : "in_progress",
             score: sim.score ?? undefined,
             startedAt,
+            takeaways: (sim.takeaways as string[] | null) || [],
           }
         })
 
-        setConnections(connectionsList)
         setSimulations(simulationsList)
         setSimulationsLoaded(true)
       } catch (error) {
@@ -189,8 +150,11 @@ export function ConnectionsSimulationsSidebar() {
     }
   }, [supabase])
 
-  const matchedConnections = connections.filter((c) => c.status === "matched")
-  const connectedConnections = connections.filter((c) => c.status === "connected")
+  // Group simulations by status
+  const running = simulations.filter(s => s.status === "in_progress")
+  const matches = simulations.filter(s => s.status === "completed" && s.score !== undefined && s.score >= 70)
+  const reviewed = simulations.filter(s => s.status === "completed" && (s.score === undefined || s.score < 70))
+  const failed = simulations.filter(s => s.status === "failed")
 
   const getStatusIcon = (status: Simulation["status"]) => {
     switch (status) {
@@ -231,150 +195,106 @@ export function ConnectionsSimulationsSidebar() {
     )
   }
 
+  const renderSimulationItem = (simulation: Simulation) => (
+    <button
+      key={simulation.id}
+      type="button"
+      className="w-full p-3 hover:bg-secondary/30 transition-colors text-left"
+      onClick={() => setSelectedSimulation(simulation)}
+    >
+      <div className="flex items-start gap-2">
+        <div className="relative shrink-0">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={simulation.targetAvatar || "/placeholder.svg"} />
+            <AvatarFallback className="text-xs">
+              {simulation.targetName
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="absolute -bottom-0.5 -right-0.5">
+            {getStatusIcon(simulation.status)}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <p className="font-medium text-xs truncate min-w-0">{simulation.targetName}</p>
+            {getStatusBadge(simulation.status, simulation.score)}
+          </div>
+          <p className="text-[10px] text-muted-foreground line-clamp-2 break-words">{simulation.targetRole}</p>
+        </div>
+      </div>
+    </button>
+  )
+
+  const renderSection = (title: string, icon: React.ReactNode, items: Simulation[]) => {
+    if (items.length === 0) return null
+    return (
+      <div className="mb-2">
+        <div className="px-3 py-2 flex items-center gap-2 text-xs font-medium text-muted-foreground sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+          {icon}
+          <span>{title}</span>
+          <span className="text-muted-foreground/60">({items.length})</span>
+        </div>
+        <div className="divide-y divide-border">
+          {items.map(renderSimulationItem)}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="flex flex-col h-full">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex flex-col h-full">
-          <div className="px-4 pt-4 pb-2 border-b border-border">
-            <TabsList className="w-full bg-secondary/50">
-              <TabsTrigger value="connections" className="flex-1 text-xs">
-                Connections ({connections.length})
-              </TabsTrigger>
-              <TabsTrigger value="simulations" className="flex-1 text-xs">
-                Simulations ({simulations.length})
-              </TabsTrigger>
-            </TabsList>
+        <div className="px-4 pt-4 pb-2 border-b border-border">
+          <h2 className="text-sm font-medium">Simulations ({simulations.length})</h2>
+        </div>
+
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="pb-4">
+            {simulations.length === 0 && (
+              <div className="p-8 flex flex-col items-center justify-center text-center">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <Clock className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">No simulations yet</p>
+                <p className="text-xs text-muted-foreground max-w-50">
+                  Your agent will start networking with others automatically.
+                </p>
+              </div>
+            )}
+
+            {renderSection(
+              "Running",
+              <Clock className="w-3.5 h-3.5 text-yellow-500" />,
+              running
+            )}
+
+            {renderSection(
+              "Matches",
+              <Sparkles className="w-3.5 h-3.5 text-teal-500" />,
+              matches
+            )}
+
+            {renderSection(
+              "Reviewed",
+              <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />,
+              reviewed
+            )}
+
+            {renderSection(
+              "Failed",
+              <XCircle className="w-3.5 h-3.5 text-destructive/70" />,
+              failed
+            )}
           </div>
-
-          <TabsContent value="connections" className="flex-1 mt-0 overflow-hidden min-h-0">
-            <ScrollArea className="h-full min-h-0">
-              <div className="divide-y divide-border pb-4">
-                {matchedConnections.length === 0 && connectedConnections.length === 0 && (
-                  <div className="p-6 text-center text-muted-foreground">
-                    <p className="text-xs">No matches yet. Check back after simulations complete.</p>
-                  </div>
-                )}
-                {matchedConnections.map((connection) => (
-                  <button
-                    key={connection.id}
-                    type="button"
-                    className="w-full p-3 hover:bg-secondary/30 transition-colors text-left"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setSelectedConnection(connection)
-                    }}
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="relative shrink-0">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={connection.avatar || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs">
-                            {connection.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-teal-500 border-2 border-card flex items-center justify-center">
-                          <Sparkles className="w-1.5 h-1.5 text-white" />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <p className="font-medium text-xs truncate min-w-0">{connection.name}</p>
-                          <Badge variant="outline" className="shrink-0 text-teal-500 border-teal-500/30 text-[10px] px-1.5 py-0">
-                            {connection.compatibility}%
-                          </Badge>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground line-clamp-3 break-words">{connection.role}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-4 break-words">{connection.icebreaker}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-                {connectedConnections.map((connection) => (
-                  <button
-                    key={connection.id}
-                    className="w-full p-3 hover:bg-secondary/30 transition-colors text-left"
-                    onClick={() => setSelectedConnection(connection)}
-                  >
-                    <div className="flex items-start gap-2">
-                      <Avatar className="w-8 h-8 shrink-0">
-                        <AvatarImage src={connection.avatar || "/placeholder.svg"} />
-                        <AvatarFallback className="text-xs">
-                          {connection.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <p className="font-medium text-xs truncate min-w-0">{connection.name}</p>
-                          <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
-                            Connected
-                          </Badge>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground line-clamp-2 break-words">{connection.role}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{connection.matchedAt}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="simulations" className="flex-1 mt-0 overflow-hidden min-h-0">
-            <ScrollArea className="h-full min-h-0">
-              <div className="divide-y divide-border pb-4">
-                {simulations.length === 0 && (
-                  <div className="p-6 text-center text-muted-foreground">
-                    <p className="text-xs">No simulations yet.</p>
-                  </div>
-                )}
-                {simulations.map((simulation) => (
-                  <div
-                    key={simulation.id}
-                    className="w-full p-3"
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="relative shrink-0">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage
-                            src={simulation.targetAvatar || "/placeholder.svg"}
-                          />
-                          <AvatarFallback className="text-xs">
-                            {simulation.targetName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5">{getStatusIcon(simulation.status)}</div>
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <p className="font-medium text-xs truncate min-w-0">{simulation.targetName}</p>
-                          {getStatusBadge(simulation.status, simulation.score)}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground line-clamp-2 break-words">{simulation.targetRole}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+        </ScrollArea>
       </div>
 
-      <ConnectionDetailModal
-        connection={selectedConnection}
-        onClose={() => {
-          setSelectedConnection(null)
-        }}
+      <SimulationDetailModal
+        simulation={selectedSimulation}
+        onClose={() => setSelectedSimulation(null)}
       />
     </>
   )

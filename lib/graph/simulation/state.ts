@@ -65,10 +65,10 @@ export const SimulationState = Annotation.Root({
     default: () => [],
   }),
 
-  // Configuration
+  // Configuration - 10 turns = 20 messages, keeps within recursion limits
   maxTurns: Annotation<number>({
     reducer: (_, update) => update,
-    default: () => 15,
+    default: () => 10,
   }),
 });
 
