@@ -226,7 +226,7 @@ export function Orchestrator() {
         {/* Scanning animation */}
         {phase === "finding_target" && (
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-teal-400" />
             <div className="text-center">
               <p className="text-xs font-medium">Browsing nodes...</p>
               <p className="text-[10px] mt-0.5 opacity-60">Looking for compatible connections</p>

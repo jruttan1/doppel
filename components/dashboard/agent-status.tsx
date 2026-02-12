@@ -111,7 +111,7 @@ export function AgentStatus() {
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold">Your Doppel</h3>
                 {isRunningSimulation && (
-                  <Badge className="bg-blue-500/10 text-blue-500 text-xs animate-pulse">
+                  <Badge className="bg-blue-500/10 text-teal-500 text-xs animate-pulse">
                     Running...
                   </Badge>
                 )}

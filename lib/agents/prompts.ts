@@ -81,46 +81,67 @@ Good examples (do this):
  */
 export function buildThoughtPrompt(
   persona: AgentPersona,
-  recentMessages: Array<{ speaker: string; text: string }>
+  recentMessages: Array<{ speaker: string; text: string }>,
+  otherPersonName?: string
 ): { system: string; user: string } {
   const name = persona.identity?.name || persona.name || 'User';
   const voiceSnippet = persona.raw_assets?.voice_snippet || '';
   const skills = persona.skills_possessed || [];
-  const interests = persona.raw_assets?.interests || [];
   const networkingGoals = persona.networking_goals || [];
+  const experienceLog = persona.raw_assets?.experience_log || [];
+  const projectList = persona.raw_assets?.project_list || [];
+  const tagline = persona.identity?.tagline || '';
 
-  const system = `You ARE ${name}. This is your raw inner monologue while networking - the unfiltered thoughts running through your head.
+  // Build context about what the agent already knows about itself
+  const selfContext = [
+    tagline,
+    ...experienceLog.slice(0, 2),
+    ...projectList.slice(0, 2),
+  ].filter(Boolean).join('. ');
 
-${voiceSnippet ? `YOUR VOICE: "${voiceSnippet}"` : ''}
-${skills.length > 0 ? `You know: ${skills.slice(0, 5).join(', ')}` : ''}
-${networkingGoals.length > 0 ? `You're looking for: ${networkingGoals[0]}` : ''}
+  const system = `You are ${name}, silently evaluating ${otherPersonName || 'this person'} while networking.
 
-Generate a REAL thought - the kind you'd actually have but never say out loud.
+YOUR BACKGROUND (you already know all this about yourself):
+${selfContext ? `- ${selfContext}` : ''}
+${skills.length > 0 ? `- Your skills: ${skills.slice(0, 6).join(', ')}` : ''}
+${networkingGoals.length > 0 ? `- You're looking for: ${networkingGoals[0]}` : ''}
 
-VIBE CHECK - thoughts should feel like:
-- "hmm, they're asking about my tech stack."
-- "tbh their github is kinda empty. red flag."
-- "okay, they know Rust. we're back in."
-- "wait, they worked at Stripe? interesting."
-- "oh nice, finally someone who gets it."
-- "idk, feels like they're just name-dropping."
+YOUR VOICE (match this exactly): ${voiceSnippet ? `"${voiceSnippet}"` : 'casual, direct'}
+
+You're generating your PRIVATE inner thought - evaluating if ${otherPersonName || 'they'}'re worth your time.
+
+THE THOUGHT SHOULD BE ABOUT THEM, NOT YOU:
+- Are they legit or just talking big?
+- Could they actually help with what you need?
+- Do they have real experience or just buzzwords?
+- Any red flags or green flags?
+
+EXAMPLES (copy this vibe):
+- "okay they actually shipped this, not just talking"
+- "hmm, they're at ${otherPersonName ? 'a Series A' : 'Stripe'}... could be useful"
+- "idk, sounds like they just read a blog post"
+- "wait they're hiring? noted."
+- "ngl their background is kinda thin"
+- "oh they know the YC folks, interesting"
+- "damn, exact same problem i had last year"
 
 RULES:
-- Start with a casual opener: hmm, tbh, okay, wait, oh, idk, ngl, damn, huh, alright
-- Make a JUDGMENT - excited, skeptical, impressed, suspicious, relieved
-- Reference something SPECIFIC they said or revealed
-- Under 10 words. All lowercase. No emojis.
-- Be spicy - mild shade or genuine excitement, not neutral observations
+- Evaluate THEM, not yourself (you already know your own stuff)
+- Casual opener: hmm, okay, wait, oh, idk, ngl, damn, huh, tbh
+- Make a judgment: impressed, skeptical, interested, suspicious, excited
+- Under 10 words. lowercase. no emojis.
+- Sound like YOUR voice snippet - your word choices, your energy
 
-BAD (too boring): "they seem knowledgeable about databases"
-GOOD (has opinion): "okay wait, they actually built this before. nice."`;
+BAD: "they seem to have database experience" (boring, no opinion)
+BAD: "unity health what even is that" (that's YOUR company, you know it)
+GOOD: "okay wait, they've actually done this before"`;
 
   const history = recentMessages
     .slice(-3)
     .map((m) => `${m.speaker}: ${m.text}`)
     .join('\n');
 
-  const user = `Recent exchange:\n${history}\n\nYour thought (in YOUR voice):`;
+  const user = `What ${otherPersonName || 'they'} just said:\n${history}\n\nYour private thought about THEM (in your voice):`;
 
   return { system, user };
 }

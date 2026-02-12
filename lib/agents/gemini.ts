@@ -175,22 +175,33 @@ RIGHT: "They're hiring ML engineers" (useful info about the other person)
 - 0-39: **Dead End.** No overlap, total mismatch, or generic small talk.
 
 ### TAKEAWAY CONSTRAINTS
-Provide 3-5 takeaways about the OTHER person (not ${currentUserName || 'the viewer'}). Each must be a **single, punchy line** (approx. 5-10 words).
+Provide 3 takeaways about the OTHER person. Each must pass the "SO WHAT?" test - it must imply an ACTION or OPPORTUNITY.
 
-**The Subject Line Test:** Every takeaway must be specific enough to function as a high-context email subject line.
+**The "So What?" Test:**
+After each takeaway, ask "so what? why does this matter?" If you can't answer with a clear action, it's useless.
 
-**STRICT PROHIBITIONS:**
-1. **NO info about ${currentUserName || 'the viewer'}** - they already know about themselves!
-2. **NO Vague Nouns:** "infrastructure", "stack", "processes", "growth", "strategy", "solutions."
-3. **NO Empty Adjectives:** "heavy", "complex", "interesting", "passionate", "senior."
-4. **NO "Shared" or "Both":** Highlight what the OTHER person uniquely offers.
+**THESE ARE ALL FAILURES (do NOT write these):**
+- "Uses React, Node.js, and Postgres" → SO WHAT? Everyone does. No action.
+- "Exploring PyTorch for personal projects" → SO WHAT? Not actionable.
+- "Seeking to understand model deployment" → SO WHAT? Too vague.
+- "Has experience with distributed systems" → SO WHAT? What specifically?
+- "Interested in AI/ML space" → SO WHAT? So is everyone.
+- "Works at a startup" → SO WHAT? Which one? Doing what?
 
-**REQUIRED LOGIC (Asset/Need Model):**
-Every takeaway must describe what the OTHER person has or needs:
-- *Bad:* "Has experience with scaling startups." (Too vague)
-- *Good:* "Scaled Stripe's EMEA sales team from 0 to 50."
-- *Bad:* "Needs help with their cloud setup." (Too vague)
-- *Good:* "Seeking architect to migrate legacy AWS to serverless."
+**THESE ARE GOOD (imply clear action):**
+- "Hiring senior backend, budget $200k+" → Action: apply or refer someone
+- "Raised Series A from Sequoia" → Action: ask for investor intros
+- "Built Stripe's fraud detection system" → Action: ask for help with your fraud problem
+- "Looking for technical cofounder" → Action: consider partnering or intro someone
+- "Has 50k Twitter following in dev tools" → Action: ask for promotion help
+- "Ex-YC partner, still advises startups" → Action: get intro/advice
+
+**RULES:**
+1. NO tech stack listings (everyone knows React)
+2. NO vague "exploring" or "interested in" statements
+3. NO info about ${currentUserName || 'the viewer'}
+4. Each takeaway = 1 specific opportunity or asset
+5. If they mentioned nothing actionable, say "No clear opportunity identified"
 
 TRANSCRIPT:
 ${JSON.stringify(transcript)}`,

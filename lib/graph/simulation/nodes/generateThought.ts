@@ -20,6 +20,7 @@ export async function generateThoughtNode(
 
   try {
     const persona = state.agentA.persona;
+    const otherPersonName = state.agentB?.name || 'them';
     const recentMessages = state.transcript.slice(-3).map((t) => ({
       speaker: t.speaker,
       text: t.text,
@@ -27,7 +28,7 @@ export async function generateThoughtNode(
 
     if (recentMessages.length === 0) return {};
 
-    const { system, user } = buildThoughtPrompt(persona, recentMessages);
+    const { system, user } = buildThoughtPrompt(persona, recentMessages, otherPersonName);
 
     const text = await generateWithRetry({
       systemPrompt: system,
